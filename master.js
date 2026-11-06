@@ -256,6 +256,63 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     const sp = top.querySelector('.sp'); if (sp) sp.after(b); else top.appendChild(b);
   };
 
+  /* ---------------- business picker under the logo (same as Proview Signage's client picker) ---------------- */
+  // Master admins see every business (plus a way back to the master page); others see the companies they belong to.
+  let pickList = null, pickLoading = false;
+  async function pickLoad() {
+    if (pickLoading) return; pickLoading = true;
+    try { const { data } = await O.sb.rpc('pe_master_overview'); pickList = (data || []).map((o) => ({ id: o.id, name: o.name })); if (!M.data.length) M.data = data || []; }
+    catch (e) { pickList = []; }
+    pickLoading = false; if (O.ready) renderNav();
+  }
+  function pickItems() {
+    const mine = (O.orgs || []).filter((o) => !o.locked).map((o) => ({ id: o.org_id, name: o.org_name }));
+    if (!O.master) return mine;
+    if (!pickList) { pickLoad(); return mine; }
+    const seen = new Set(pickList.map((o) => o.id));
+    return [...pickList, ...mine.filter((o) => !seen.has(o.id))];
+  }
+  function pickHtml(compact) {
+    if (!O.ready || !O.org) return '';
+    const items = pickItems().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
+    if (!items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
+    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${O.master ? `<option value="__master">Master admin: all businesses</option>` : ''}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+  }
+  A.pePickOrg = (el) => {
+    const id = el.value; if (!id || id === O.org) return;
+    if (id === '__master') return A.msBackToMaster();
+    const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
+    const o = (pickList || []).find((x) => x.id === id);
+    O.enterOrg(mine || { org_id: id, org_name: o?.name || '', member_id: 'proview-master', role: 'Owner', as_master: true });
+  };
+  (function mountPick() {
+    const brand = document.querySelector('.side .brand');
+    if (brand && !document.getElementById('orgPick')) { const d = document.createElement('div'); d.className = 'client-pick'; d.id = 'orgPick'; brand.after(d); }
+  })();
+  const _renderNav = renderNav;
+  renderNav = function () { _renderNav.apply(this, arguments); const p = document.getElementById('orgPick'); if (p) p.innerHTML = pickHtml(); };
+  const _renderTop2 = renderTop;
+  renderTop = function () {
+    _renderTop2.apply(this, arguments);
+    const top = $('#top'); if (!top || !O.ready) return;
+    const h = pickHtml(true); if (!h) return;
+    const w = document.createElement('span'); w.className = 'top-pick'; w.innerHTML = h;
+    const sp = top.querySelector('.sp'); if (sp) sp.after(w); else top.appendChild(w);
+  };
+  const css3 = document.createElement('style');
+  css3.textContent = `.client-pick{margin:0 14px 12px}.client-pick:empty{display:none}
+.client-pick select,.top-pick select{width:100%;background:#23232a;color:#fff;border:1px solid #33333c;border-radius:9px;padding:9px 30px 9px 11px;font:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;text-overflow:ellipsis}
+.client-pick select:hover{border-color:#4a4a55}.client-pick select:focus-visible,.top-pick select:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
+.client-pick select option{background:#23232a;color:#fff}
+.client-pick .sp-title{color:#9a9aa4;font-size:13px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app.collapsed .client-pick{display:none}.top-pick{display:none}
+@media (min-width:701px) and (max-width:900px){.client-pick{display:none}}
+@media (max-width:900px){.top-pick{display:block;max-width:46%;min-width:0;margin:0 6px}.top-pick select{padding:7px 28px 7px 10px;font-size:15px;background-color:var(--card);color:var(--ink);border:1px solid var(--line);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}.top-pick select option{background:var(--card);color:var(--ink)}}
+@media (max-width:700px){.top:has(.top-pick){flex-wrap:wrap!important;row-gap:8px!important;height:auto}.top .top-pick{order:20;flex:1 0 100%;max-width:none;margin:0 0 2px}}
+@media (hover:none) and (pointer:coarse){.client-pick select,.top-pick select{font-size:16px}}`;
+  document.head.appendChild(css3);
+
   const css2 = document.createElement('style');
   css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:flex-start;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:14px}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
   document.head.appendChild(css2);
