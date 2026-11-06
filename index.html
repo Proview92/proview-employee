@@ -417,7 +417,7 @@ th.cb,td.cb{width:42px;padding-right:0!important}th.cb input,td.cb input{width:1
 .qr-box{width:140px;height:140px;padding:4px;background:#fff;border-radius:8px;display:grid;place-items:center}
 .radios{display:flex;flex-direction:column;gap:8px}.radios label{display:flex;align-items:center;gap:8px}
 .timer2{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:var(--ok)}.timer2.brk{color:var(--warn)}
-.resume-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:4px 10px 4px 8px;cursor:pointer;color:var(--mut)}.resume-pill:hover{border-color:var(--ok);color:var(--ok)}
+.resume-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:4px 10px 4px 8px;min-height:32px;cursor:pointer;color:var(--mut)}.resume-pill:hover{border-color:var(--ok);color:var(--ok)}
 .brk-opt{padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}.brk-opt:has(input:checked){border-color:var(--pri);background:var(--pri-l)}
 .ts-page{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start}
 .ts-sum{position:sticky;top:0;overflow:hidden}.sum-row{display:flex;justify-content:space-between;padding:4px 0;color:var(--mut)}.sum-row.b{color:var(--ink);font-weight:700}
@@ -453,8 +453,43 @@ table.rota td:first-child,table.rota th:first-child{min-width:200px;position:sti
 .openrow td{background:var(--badl)}.cover td{background:var(--bg)}.cov{font-size:11.5px;font-weight:650;border-radius:6px;padding:2px 6px;margin:2px 0}.cov.ok{background:var(--okl);color:var(--ok)}.cov.bad{background:var(--badl);color:var(--bad)}
 .need{margin-bottom:10px;box-shadow:none}
 @media print{.rota-wrap{overflow:visible}table.rota{min-width:0;font-size:11px}.filters{display:none}}
+.tk-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+.tk-col{background:var(--greyl);border-radius:var(--r);padding:10px;min-height:200px}.tk-col-h{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 10px}
+.tk-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--pri);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;box-shadow:var(--sh)}.tk-card:hover{border-color:var(--pri)}
+.tk-card.pri-high{border-left-color:var(--bad)}.tk-card.pri-low{border-left-color:var(--grey)}.tk-card.done b{text-decoration:line-through;color:var(--mut)}
+.tk-check{width:28px;height:28px;flex:none;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;color:transparent}.tk-check:hover{border-color:var(--ok);color:var(--ok)}.tk-check.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.tk-item{padding:8px 0;border-bottom:1px solid var(--line);gap:10px;flex-wrap:nowrap}.tk-item input{width:18px;height:18px;accent-color:var(--ok)}
+.shift[data-tasks]{position:relative}.shift[data-tasks]::after{content:attr(data-tasks) ' task' ;position:absolute;top:4px;right:6px;font-size:10px;font-weight:700;color:var(--pri)}
+.k-tasks{width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;text-align:left}.k-task{display:flex;align-items:center;gap:12px;background:#1f1f25;border:1px solid #33333c;color:#fff;border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:600;text-align:left}.k-task.done span:last-child{text-decoration:line-through;color:#8b8b95}.k-task .tk-check{background:#2a2a32;border-color:#44444f}
+@media (max-width:900px){.tk-board{grid-template-columns:1fr}}
 @media (max-width:900px){.ts-page,.donut-card{grid-template-columns:1fr}.ts-sum{position:static}.ev-row{grid-template-columns:34px 60px 1fr}.ev-row .ev-meta{grid-column:1/-1}}
 @media (max-width:900px){.loc-split,.sc-split{grid-template-columns:1fr}.loc-split{height:auto}#locmap{height:420px}.sc-list{position:static}.kv,.frow{grid-template-columns:1fr}.kv>span,.frow>label:first-child{text-align:left}.add-row{grid-template-columns:1fr}}
+.menu-btn{display:none!important}.mobile-only{display:none}.th-search input{min-height:30px}#navScrim{position:fixed;inset:0;background:rgba(20,20,24,.45);z-index:74;display:none}#navScrim.show{display:block}
+@media (max-width:700px){
+ .app,.app.collapsed{grid-template-columns:1fr!important}
+ .side{position:fixed;left:0;top:0;bottom:0;width:272px;z-index:75;transform:translateX(-105%);transition:transform .25s ease;box-shadow:10px 0 40px rgba(0,0,0,.3)}
+ .app.navopen .side{transform:none}
+ .app .side .lbl{display:inline!important}.app .side .brand .wordmark{display:inline!important}.app .side .nav-sec{display:block!important}.app .side .venue{display:block!important}.app .side .cnt{display:inline!important}
+ .app .side .nav button{justify-content:flex-start!important}.collapse-btn{display:none}.side-foot{display:none!important}
+ .menu-btn{display:grid!important;margin-left:-6px}.mobile-only{display:block}#top>span[style*='width:1px'],#top [data-act=kiosk],#top [data-act=whoDrawer]{display:none!important}.top{flex-wrap:nowrap!important}.top h2{flex:1;max-width:none}.timer2{font-size:14px}
+ .top{gap:4px}.top h2{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+ .clockbox{gap:4px}.clockbox .chip{display:none}.clockbox .chip.amber{display:inline-flex}.resume-pill b{display:none}.clock-btn{width:34px;height:34px}.top .icon-btn{width:34px;height:34px}
+ table.rota td:first-child,table.rota th:first-child{min-width:96px;max-width:96px}table.rota td:first-child .av,table.rota td:first-child .small{display:none}.rcell{min-width:104px}
+ .sublinks{overflow-x:auto;flex-wrap:nowrap}.sublinks button{white-space:nowrap}
+ #drawer{width:100vw}.dr-foot{flex-wrap:wrap}
+ .modal-bg{padding:16px 8px}
+ #toast{left:12px;right:12px;top:66px;min-width:0}
+ .filters .inp{min-width:0;flex:1 1 140px}.filters .search{flex:1 1 100%}.filters .search input{min-width:0;width:100%}
+ .stats{grid-template-columns:1fr 1fr}.stat .v{font-size:19px}
+ .kv,.frow{grid-template-columns:1fr}.sc-form .row{flex-wrap:wrap}
+ .ev-row{grid-template-columns:34px 56px 1fr}.ev-row .ev-meta{grid-column:2/-1}.ev-actions{position:static;justify-content:flex-end}
+ .donut-wrap{width:200px;height:200px}.donut-body{padding:16px;gap:16px}.donut-tabs{flex-direction:row}.donut-tabs button{padding:12px}
+ .loc-res{width:calc(100vw - 24px)}.loc-split{height:auto}#locmap{height:360px}
+ .ai-hero{min-height:calc(100vh - 120px)}
+ .kiosk .kclock{font-size:44px}.kiosk{justify-content:flex-start;padding-top:70px;overflow:auto}
+ .cal>div{min-height:64px}.cal .ev{font-size:11px;padding:4px 4px;min-height:24px}.cal>div{padding:2px}
+ .chip{min-height:22px}.seg button{min-height:34px}.btn.sm{min-height:32px}.btn.ghost.sm{min-width:32px;justify-content:center}.icon-btn{min-width:36px;min-height:36px}
+}
 @media print{body.printing .app,body.printing #drawer,body.printing #scrim,body.printing #toast{display:none!important}body.printing .modal-bg{position:static;display:block;padding:0;background:none}body.printing .modal-bg .noprint{display:none!important}body.printing .modal{max-width:none;box-shadow:none;border:0}body.printing .inv-paper{padding:0}}
 </style>
 </head>
@@ -1787,6 +1822,122 @@ const _aiR=aiAnswer;aiAnswer=function(raw){const q=raw.toLowerCase();if(/rota|sh
  return`${sh.length-open.length} people on the rota ${lbl}${open.length?`, and <b>${open.length} open shift${open.length>1?'s':''}</b> still to fill`:''}:${tbl(['Member','Shift','Activity','Location'],sh.map(s=>[s.member?esc(mem(s.member)?.name):'<b>Open shift</b>',`${s.start}–${s.end}`,esc(act(s.activity)?.name||''),esc(locn(s.location)?.name||'')]))}`}return _aiR(raw)};
 
 A.print=()=>window.print();
+
+
+/* ---------- mobile: slide-out menu ---------- */
+ICON.burger='<path d="M4 6h16M4 12h16M4 18h16"/>';
+(function(){const s=document.createElement('div');s.id='navScrim';s.dataset.act='navClose';document.body.appendChild(s)})();
+const _renderTopM=renderTop;renderTop=function(){_renderTopM();$('#top').insertAdjacentHTML('afterbegin',`<button class="icon-btn menu-btn" data-act="navToggle" title="Menu" aria-label="Open menu">${ic('burger',20)}</button>`)};
+A.navToggle=()=>{$('#app').classList.toggle('navopen');$('#navScrim').classList.toggle('show',$('#app').classList.contains('navopen'))};
+A.navClose=()=>{$('#app').classList.remove('navopen');$('#navScrim').classList.remove('show')};
+const _renderNavM=renderNav;renderNav=function(){_renderNavM();$('#nav').insertAdjacentHTML('beforeend',`<div class="mobile-only"><div class="nav-div"></div><button data-act="mWho">${ic('people',19)}<span class="lbl">Who's in/out</span><span class="cnt">${activeMembers().filter(m=>status(m.id)!=='out').length}</span></button><button data-act="mKiosk">${ic('kiosk',19)}<span class="lbl">Open kiosk</span></button><button data-act="mDark">${ic('moon',19)}<span class="lbl">${S.settings.dark?'Light':'Dark'} mode</span></button></div>`)};
+A.mWho=()=>{A.navClose();A.whoDrawer()};A.mKiosk=()=>{A.navClose();A.kiosk()};A.mDark=()=>{S.settings.dark=!S.settings.dark;save();render()};
+const _goM=A.go;A.go=el=>{A.navClose();_goM(el)};
+const _profM=A.myProfile;A.myProfile=()=>{A.navClose();_profM()};
+
+/* ================= Tasks: create & assign to staff by their shifts ================= */
+ICON.task='<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 12 2.5 2.5L16 9"/>';
+NAV.splice(NAV.findIndex(n=>n[0]==='rota')+1,0,['tasks','Tasks','task']);NAV_MAIN.splice(NAV_MAIN.indexOf('rota')+1,0,'tasks');TITLES.tasks='Tasks';
+AI_SUGG.splice(5,0,'What tasks are still open today?');
+const PRI={high:['red','High'],normal:['blue','Normal'],low:['','Low']};const TST={todo:'To do',doing:'In progress',done:'Done'};
+const _upgTasks=upgrade;upgrade=function(s){s=_upgTasks(s);if(!s.tasks){s.tasks=[];s.taskTemplates=[];s.tasksSeedPending=true;
+  setTimeout(()=>{if(!S.tasksSeedPending)return;S.tasksSeedPending=false;const T=today(),tm=addDays(T,1);
+   const mk=(o)=>createTask({description:'',time:'',location:'',activity:'',priority:'normal',checklist:[],repeat:'none',...o},true);
+   mk({title:'Open office & check post',date:T,time:'09:00',need:'n1',mode:'one',location:'l1',checklist:['Disarm alarm','Check post and deliveries','Switch on screens']});
+   mk({title:'Site safety walk',date:T,time:'08:15',need:'n2',mode:'one',location:'l3',priority:'high',checklist:['Check scaffolding tags','Sign site register']});
+   mk({title:'Update client job notes',date:T,need:'n1',mode:'each',activity:'a1'});
+   mk({title:'Tidy kitchen & lock up',date:T,time:'17:15',need:'n1',mode:'one',location:'l1',priority:'low'});
+   mk({title:'Order replacement card terminal',date:tm,assignee:'m3',mode:'person',priority:'high'});
+   mk({title:'Weekly stock check',date:T,need:'n2',mode:'one',repeat:'weekly',location:'l3',checklist:['Count consumables','Log shortages']});
+   S.tasks.filter(t=>t.date===T).slice(0,2).forEach((t,i)=>{if(t.assignee){t.status=i?'doing':'done';if(t.status==='done'){t.doneAt=Date.now()-36e5;t.doneBy=t.assignee;t.checklist.forEach(c=>c.done=true)}}});save();render()},5)}
+ return s};
+/* ---------- shift lookups ---------- */
+function shiftsOn(d,{need,location,time,published=true}={}){return S.rota.shifts.filter(s=>s.date===d&&s.member&&(!published||s.published)&&(!need||s.need===need)&&(!location||s.location===location)&&(!time||(atHM(d,time)>=atHM(d,s.start)&&atHM(d,time)<shiftEnd(s))))}
+function shiftLabel(mid,d){const m=mem(mid);if(!m)return'';if(leaveOn(mid,d))return`<span class="chip blue">On leave</span>`;const sh=rotaShiftsFor(mid,d);if(!sh.length)return`<span class="chip amber">Not on the rota</span>`;return sh.map(s=>`<span class="chip ${s.published?'green':''}">${s.published?'On shift':'Draft shift'} ${s.start}–${s.end}</span>`).join(' ')}
+const tasksOn=(mid,d)=>S.tasks.filter(t=>t.assignee===mid&&t.date===d);
+function leastBusy(cands,d){return cands.slice().sort((a,b)=>tasksOn(a,d).filter(t=>t.status!=='done').length-tasksOn(b,d).filter(t=>t.status!=='done').length||a.localeCompare(b))[0]}
+/* creates one or more task records; returns them */
+function createTask(o,quiet){const base={id:'',title:o.title.trim(),description:o.description||'',date:o.date,time:o.time||'',location:o.location||'',activity:o.activity||'',priority:o.priority||'normal',status:'todo',checklist:(o.checklist||[]).map(c=>typeof c==='string'?{id:uid(),text:c,done:false}:{...c,id:c.id||uid()}),mode:o.mode||'person',need:o.need||'',createdBy:S.me,createdAt:Date.now(),template:o.template||''};
+ let assignees=[];
+ if(o.mode==='person')assignees=[o.assignee||''];
+ else{const pool=[...new Set(shiftsOn(o.date,{need:o.need,location:o.need?'':o.location,time:o.need?'':o.time}).map(s=>s.member))];if(o.mode==='each')assignees=pool.length?pool:[''];else assignees=[pool.length?leastBusy(pool,o.date):'']}
+ const made=assignees.map(a=>({...base,id:uid(),assignee:a,checklist:base.checklist.map(c=>({...c,id:uid()}))}));S.tasks.push(...made);
+ made.forEach(t=>{if(t.assignee&&t.assignee!==S.me)notify('task',`${mem(t.assignee).name.split(' ')[0]} was given “${t.title}” for ${fmtDate(t.date)}`)});
+ if(o.repeat&&o.repeat!=='none'&&!o.template){S.taskTemplates.push({id:uid(),...o,checklist:base.checklist.map(c=>c.text),start:o.date,lastMade:o.date})}
+ if(!quiet)save();return made}
+/* recurring tasks are created when a day is viewed */
+function ensureRecurring(d){let n=0;for(const tp of S.taskTemplates||[]){if(d<=tp.start||d<=tp.lastMade&&S.tasks.some(t=>t.template===tp.id&&t.date===d))continue;if(S.tasks.some(t=>t.template===tp.id&&t.date===d))continue;
+  const ok=tp.repeat==='daily'||(tp.repeat==='weekdays'&&dow(d)%6!==0)||(tp.repeat==='weekly'&&dow(d)===dow(tp.start));if(!ok||d>addDays(today(),14))continue;createTask({...tp,date:d,template:tp.id,repeat:'none'},true);tp.lastMade=d>tp.lastMade?d:tp.lastMade;n++}if(n)save();return n}
+function autoAssignDay(d){let n=0,left=0;for(const t of S.tasks.filter(t=>t.date===d&&!t.assignee&&t.status!=='done')){const pool=[...new Set(shiftsOn(d,{need:t.need,location:t.need?'':t.location,time:t.need?'':t.time}).map(s=>s.member))];const fb=pool.length?pool:[...new Set(shiftsOn(d).map(s=>s.member))];
+  if(fb.length){t.assignee=leastBusy(fb,d);n++;notify('task',`${mem(t.assignee).name.split(' ')[0]} was given “${t.title}”`)}else left++}save();return{n,left}}
+
+/* ---------- Tasks page ---------- */
+U.tkDate=today();U.tkView='board';U.tkMem='';U.tkLoc='';U.tkPri='';
+VIEWS.tasks=()=>{const d=U.tkDate;ensureRecurring(d);const admin=isAdmin()||me()?.role==='Manager';const vis=scopeMembers(U.scope).map(m=>m.id);
+ let list=S.tasks.filter(t=>(U.tkView==='mine'?t.assignee===S.me:true)&&(admin||t.assignee===S.me||!t.assignee&&false)&&(U.tkView==='list'?t.date>=weekStartOf(d)&&t.date<=addDays(weekStartOf(d),6):t.date===d)&&(!U.tkMem||t.assignee===U.tkMem)&&(!U.tkLoc||t.location===U.tkLoc)&&(!U.tkPri||t.priority===U.tkPri)&&(!t.assignee||vis.includes(t.assignee)||admin));
+ if(!admin)list=list.filter(t=>t.assignee===S.me);
+ const order=(a,b)=>({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority])||(a.time||'99').localeCompare(b.time||'99');
+ const unassigned=S.tasks.filter(t=>t.date===d&&!t.assignee&&t.status!=='done').length;
+ const card=t=>{const m=mem(t.assignee);const cl=t.checklist.length?`${t.checklist.filter(c=>c.done).length}/${t.checklist.length}`:'';return`<div class="tk-card pri-${t.priority} ${t.status}" data-act="taskOpen" data-id="${t.id}"><div class="row between" style="flex-wrap:nowrap"><b>${esc(t.title)}</b><button class="tk-check ${t.status==='done'?'on':''}" data-act="taskDone" data-id="${t.id}" title="${t.status==='done'?'Mark as not done':'Mark as done'}">${ic('check',14)}</button></div>
+  <div class="small mut">${[t.time?`${ic('clock',12)} ${fmtT(atHM(t.date,t.time))}`:'',t.location&&locn(t.location)?`${ic('pin',12)} ${esc(locn(t.location).name)}`:''].filter(Boolean).join(' · ')}</div>
+  <div class="row between" style="margin-top:8px;flex-wrap:nowrap"><span class="row" style="gap:6px;flex-wrap:nowrap">${m?`${avatar(m,24)}<span class="small">${esc(m.name.split(' ')[0])}</span>`:'<span class="chip red">Unassigned</span>'}</span><span class="row" style="gap:4px">${t.priority!=='normal'?`<span class="chip ${PRI[t.priority][0]}">${PRI[t.priority][1]}</span>`:''}${cl?`<span class="chip">${ic('check',11)} ${cl}</span>`:''}${t.template?`<span class="chip" title="Repeats">↻</span>`:''}</span></div></div>`};
+ const head=`<div class="filters">${U.tkView!=='list'?`<div class="datenav"><button data-act="tkNav" data-n="-1">${ic('left')}</button><div class="dlabel">${d===today()?'Today · ':''}${fmtDate(d)}<input type="date" value="${d}" data-act-change="tkPick"></div><button data-act="tkNav" data-n="1">${ic('right')}</button>${d!==today()?`<button class="today-btn" data-act="tkNav" data-n="0">Today</button>`:''}</div>`:`<div class="datenav"><button data-act="tkNav" data-n="-7">${ic('left')}</button><div class="dlabel">${fmtDate(weekStartOf(d),{day:'numeric',month:'short'})} – ${fmtDate(addDays(weekStartOf(d),6),{day:'numeric',month:'short'})}</div><button data-act="tkNav" data-n="7">${ic('right')}</button></div>`}
+  ${admin?`<select class="inp" data-act-change="setSel" data-k="tkMem"><option value="">Everyone</option>${opts(activeMembers(),U.tkMem)}</select>`:''}<select class="inp" data-act-change="setSel" data-k="tkLoc"><option value="">All locations</option>${opts(S.locations.filter(l=>!l.archived),U.tkLoc)}</select><select class="inp" data-act-change="setSel" data-k="tkPri"><option value="">All priorities</option>${Object.entries(PRI).map(([k,v])=>`<option value="${k}" ${U.tkPri===k?'selected':''}>${v[1]}</option>`).join('')}</select>
+  <div style="flex:1"></div>${admin&&unassigned&&U.tkView!=='list'?`<button class="btn" data-act="tkAuto">${ic('wand',15)} Auto-assign ${unassigned} from rota</button>`:''}${admin?`<button class="btn pri" data-act="taskNew">${ic('plus',16)} New task</button>`:''}</div>`;
+ const tabs=sub('tkView',[['board','Board'],['list','List'],['mine','My tasks']]);
+ if(U.tkView==='list'){const days=[...Array(7)].map((_,i)=>addDays(weekStartOf(d),i));return tabs+head+`<div class="card"><table class="t"><thead><tr><th>Task</th><th>Date</th><th>Time</th><th>Assigned to</th><th>Shift</th><th>Location</th><th>Priority</th><th>Status</th></tr></thead><tbody>${days.flatMap(x=>list.filter(t=>t.date===x).sort(order)).map(t=>`<tr class="click" data-act="taskOpen" data-id="${t.id}"><td><b>${esc(t.title)}</b>${t.checklist.length?` <span class="small mut">${t.checklist.filter(c=>c.done).length}/${t.checklist.length}</span>`:''}</td><td>${fmtDate(t.date)}</td><td>${t.time?fmtT(atHM(t.date,t.time)):'—'}</td><td>${t.assignee?esc(mem(t.assignee)?.name):'<span class="chip red">Unassigned</span>'}</td><td>${t.assignee?shiftLabel(t.assignee,t.date):''}</td><td>${esc(locn(t.location)?.name||'—')}</td><td><span class="chip ${PRI[t.priority][0]}">${PRI[t.priority][1]}</span></td><td><span class="chip ${t.status==='done'?'green':t.status==='doing'?'amber':''}">${TST[t.status]}</span></td></tr>`).join('')||`<tr><td colspan="8">${empty('task','No tasks this week')}</td></tr>`}</tbody></table></div>`}
+ const done=list.filter(t=>t.status==='done').length;
+ return tabs+head+`<div class="row" style="margin-bottom:12px"><div class="progress" style="flex:1;max-width:420px"><div style="width:${list.length?done/list.length*100:0}%"></div></div><span class="small mut">${done} of ${list.length} done${unassigned&&admin?` · <b style="color:var(--bad)">${unassigned} unassigned</b>`:''}</span></div>
+ <div class="tk-board">${['todo','doing','done'].map(st=>{const col=list.filter(t=>t.status===st).sort(order);return`<div class="tk-col" data-col="${st}"><div class="tk-col-h"><b>${TST[st]}</b><span class="chip">${col.length}</span></div>${col.map(card).join('')||`<div class="mut small" style="padding:14px;text-align:center">${st==='todo'?'Nothing to do':st==='doing'?'Nothing in progress':'Nothing done yet'}</div>`}</div>`}).join('')}</div>`};
+A.tkNav=el=>{const n=+el.dataset.n;U.tkDate=n?addDays(U.tkDate,n):today();render()};
+A.tkPick=el=>{if(el.value){U.tkDate=el.value;render()}};
+A.tkAuto=()=>{const r=autoAssignDay(U.tkDate);render();toast(r.n?`${r.n} task${r.n>1?'s':''} assigned from the rota${r.left?` · ${r.left} still unassigned (nobody on shift)`:''}`:'Nobody is on a published shift to take them','bad'.repeat(r.n?0:1)||'ok')};
+A.taskDone=(el,e)=>{e.stopPropagation();const t=S.tasks.find(x=>x.id===el.dataset.id);if(!t)return;if(t.status==='done'){t.status='todo';delete t.doneAt}else{t.status='done';t.doneAt=Date.now();t.doneBy=S.me;t.checklist.forEach(c=>c.done=true)}save();render();if(K)renderKiosk();toast(t.status==='done'?`“${t.title}” done`:'Marked as not done')};
+/* task drawer */
+function taskDrawer(t){const isNew=!t.id;D={kind:'task',...JSON.parse(JSON.stringify(t)),newItem:''};D.render=()=>renderTaskDrawer();renderTaskDrawer(true)}
+function renderTaskDrawer(first){const t=D;const admin=isAdmin()||me()?.role==='Manager';const ro=!admin;
+ const cands=activeMembers().map(m=>({id:m.id,name:`${m.name}${leaveOn(m.id,t.date)?' — on leave':rotaShiftsFor(m.id,t.date).length?` — ${rotaShiftsFor(m.id,t.date).map(s=>s.start+'–'+s.end).join(', ')}`:' — not on rota'}`}));
+ const pool=t.mode!=='person'?[...new Set(shiftsOn(t.date,{need:t.need,location:t.need?'':t.location,time:t.need?'':t.time}).map(s=>s.member))]:[];
+ const body=`${fld('Title *',`<input class="inp" value="${esc(t.title)}" data-dr="title" placeholder="e.g. Open the office" ${ro?'disabled':''}>`)}${fld('Notes',`<textarea class="inp" data-dr="description" ${ro?'disabled':''}>${esc(t.description)}</textarea>`)}
+ <div class="grid2"><div>${fld('Date',`<input class="inp" type="date" value="${t.date}" data-dr="date" data-rr="1" ${ro?'disabled':''}>`)}</div><div>${fld('Time (optional)',`<input class="inp" type="time" value="${t.time}" data-dr="time" data-rr="1" ${ro?'disabled':''}>`)}</div></div>
+ <div class="grid2"><div>${fld('Location',`<select class="inp" data-dr="location" data-rr="1" ${ro?'disabled':''}>${opts(S.locations.filter(l=>!l.archived),t.location,{none:'Any location'})}</select>`)}</div><div>${fld('Priority',`<select class="inp" data-dr="priority" ${ro?'disabled':''}>${Object.entries(PRI).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v[1]}</option>`).join('')}</select>`)}</div></div>
+ ${fld('Activity',`<select class="inp" data-dr="activity" ${ro?'disabled':''}>${opts(activeActs(),t.activity,{none:'No activity'})}</select>`)}
+ <div class="nav-sec" style="padding:18px 0 4px">Assign</div>
+ ${t.id?`<div class="row">${t.assignee?`${avatar(mem(t.assignee),30)}<b>${esc(mem(t.assignee).name)}</b> ${shiftLabel(t.assignee,t.date)}`:'<span class="chip red">Unassigned</span>'}</div>${admin?fld('Reassign to',`<select class="inp" data-dr="assignee" data-rr="1"><option value="">Unassigned</option>${opts(cands,t.assignee)}</select>`):''}${admin&&t.assignee&&leaveOn(t.assignee,t.date)?'<div class="small" style="color:var(--bad);margin-top:6px">This person is on leave that day.</div>':''}`
+ :`<div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr);width:100%">${[['person','A person'],['one','By shift — one'],['each','By shift — everyone']].map(([k,l])=>`<button class="${t.mode===k?'on':''}" data-act="tkMode" data-v="${k}">${l}</button>`).join('')}</div>
+  ${t.mode==='person'?`${fld('Person',`<select class="inp" data-dr="assignee" data-rr="1"><option value="">Choose a person</option>${opts(cands,t.assignee)}</select>`)}${t.assignee?`<div style="margin-top:6px">${shiftLabel(t.assignee,t.date)}</div>`:''}`
+  :`${fld('Shift',`<select class="inp" data-dr="need" data-rr="1"><option value="">Anyone on shift${t.location?' at this location':''}${t.time?' at this time':''}</option>${S.rota.needs.map(n=>`<option value="${n.id}" ${t.need===n.id?'selected':''}>${esc(n.name)} (${n.start}–${n.end})</option>`).join('')}</select>`)}
+   <div class="info-banner" style="margin-top:10px">${ic('rota',16)} ${pool.length?`${t.mode==='each'?`A copy goes to each of the ${pool.length} people`:'Goes to the least busy of'} on shift: <b>${pool.map(id=>esc(mem(id).name.split(' ')[0])).join(', ')}</b>`:`Nobody is on a published shift that matches. The task will be <b>unassigned</b> until someone is rostered — use “Auto-assign”.`}</div>`}
+  ${fld('Repeat',`<select class="inp" data-dr="repeat"><option value="none">Doesn't repeat</option><option value="daily" ${t.repeat==='daily'?'selected':''}>Every day</option><option value="weekdays" ${t.repeat==='weekdays'?'selected':''}>Every weekday</option><option value="weekly" ${t.repeat==='weekly'?'selected':''}>Every week on ${DN[dow(t.date)]}</option></select>`)}<div class="small mut" style="margin-top:4px">Repeating tasks are assigned to whoever is on that shift each day.</div>`}
+ <div class="nav-sec" style="padding:18px 0 4px">Checklist</div>${t.checklist.map((c,i)=>`<label class="row tk-item"><input type="checkbox" data-cl="${i}" ${c.done?'checked':''}> <span style="${c.done?'text-decoration:line-through;color:var(--mut)':''}">${esc(c.text)}</span>${admin?`<button class="btn ghost sm" style="margin-left:auto" data-act="clDel" data-i="${i}">${ic('x',12)}</button>`:''}</label>`).join('')}
+ ${admin?`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input class="inp" placeholder="Add a checklist item" value="${esc(t.newItem)}" data-dr="newItem" id="clNew"><button class="btn sm" data-act="clAdd">${ic('plus',14)}</button></div>`:''}
+ ${t.id?`<div class="nav-sec" style="padding:18px 0 4px">Status</div><div class="seg">${Object.entries(TST).map(([k,l])=>`<button class="${t.status===k?'on':''}" data-act="tkStatus" data-v="${k}">${l}</button>`).join('')}</div>${t.template&&admin&&(S.taskTemplates||[]).some(p=>p.id===t.template)?`<div style="margin-top:10px"><button class="btn ghost sm" data-act="tkStop">↻ Stop repeating</button></div>`:''}${t.doneAt?`<div class="small mut" style="margin-top:6px">Done by ${esc(mem(t.doneBy)?.name||'')} · ${relTime(t.doneAt)}</div>`:''}`:''}`;
+ if(first)openDrawer(t.id?'Task':'New task',body,`${t.id&&admin?`<button class="btn danger" data-act="taskDel" style="flex:0">${ic('trash',16)}</button>`:''}<button class="btn" data-act="closeDrawer">Cancel</button><button class="btn pri" data-act="taskSave">${t.id?'Save':'Create task'}</button>`);else{const b=$('#drawer .dr-body');const y=b.scrollTop;b.innerHTML=body;b.scrollTop=y}}
+A.taskNew=()=>taskDrawer({title:'',description:'',date:U.tkDate||today(),time:'',location:'',activity:'',priority:'normal',checklist:[],mode:'one',need:'',assignee:'',repeat:'none'});
+A.taskOpen=el=>{const t=S.tasks.find(x=>x.id===el.dataset.id);if(t)taskDrawer(t)};
+A.tkMode=el=>{D.mode=el.dataset.v;renderTaskDrawer()};
+A.tkStatus=el=>{D.status=el.dataset.v;renderTaskDrawer()};
+A.clAdd=()=>{const v=($('#clNew')?.value||'').trim();if(!v)return;D.checklist.push({id:uid(),text:v,done:false});D.newItem='';renderTaskDrawer();$('#clNew')?.focus()};
+A.clDel=(el,e)=>{e.preventDefault();D.checklist.splice(+el.dataset.i,1);renderTaskDrawer()};
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset.cl!=null&&D&&D.kind==='task'){D.checklist[+el.dataset.cl].done=el.checked;if(D.id&&D.checklist.some(c=>c.done)&&D.status==='todo')D.status='doing';renderTaskDrawer()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='clNew'){e.preventDefault();A.clAdd()}});
+A.taskSave=()=>{const t=D;if(!String(t.title).trim())return toast('Give the task a title','bad');if(!t.date)return toast('Choose a date','bad');const nv=($('#clNew')?.value||'').trim();if(nv)t.checklist.push({id:uid(),text:nv,done:false});
+ if(t.mode==='person'&&!t.id&&!t.assignee)return toast('Choose a person, or assign by shift','bad');if(t.assignee&&leaveOn(t.assignee,t.date))return toast(`${mem(t.assignee).name.split(' ')[0]} is on leave that day`,'bad');
+ if(!t.id){const made=createTask(t);closeDrawer();U.tkDate=t.date;render();const un=made.filter(x=>!x.assignee).length;return toast(made.length>1?`${made.length} tasks created — one for each person on shift`:un?'Task created — unassigned until someone is on shift':`Task created for ${mem(made[0].assignee).name.split(' ')[0]}`,un?'bad':'ok')}
+ const x=S.tasks.find(y=>y.id===t.id);const was=x.assignee;const{kind,render:_r,newItem,...rec}=t;if(rec.status==='done'&&x.status!=='done'){rec.doneAt=Date.now();rec.doneBy=S.me}if(rec.status!=='done'){delete rec.doneAt;delete rec.doneBy}Object.assign(x,rec);if(x.assignee&&x.assignee!==was&&x.assignee!==S.me)notify('task',`${mem(x.assignee).name.split(' ')[0]} was given “${x.title}”`);save();closeDrawer();render();toast('Task saved')};
+A.taskDel=()=>{const id=D.id;const x=S.tasks.find(t=>t.id===id);ask(x.template?'Delete this task? Future repeats still happen — use “Stop repeating” to end them.':'Delete this task?',()=>{S.tasks=S.tasks.filter(t=>t.id!==id);save();closeDrawer();render();toast('Task deleted')})};
+/* ---------- show tasks elsewhere ---------- */
+const _rotaTk=VIEWS.rota;VIEWS.rota=()=>_rotaTk().replace(/<button class="shift ([^"]*)" style="([^"]*)" data-act="([^"]*)" data-id="([^"]*)"/g,(m0,c,st,a,id)=>{const s=S.rota.shifts.find(x=>x.id===id);const n=s&&s.member?S.tasks.filter(t=>t.assignee===s.member&&t.date===s.date).length:0;return n?`<button class="shift ${c}" style="${st}" data-act="${a}" data-id="${id}" data-tasks="${n}"`:m0});
+const _dashTk=VIEWS.dashboard;VIEWS.dashboard=()=>{const h=_dashTk();const T=today();ensureRecurring(T);const ids=new Set(dashMembers().map(m=>m.id));const ts=S.tasks.filter(t=>t.date===T&&(!t.assignee||ids.has(t.assignee)));const done=ts.filter(t=>t.status==='done').length,un=ts.filter(t=>!t.assignee).length;
+ const card=`<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>Today's tasks</b><button class="btn ghost sm" data-act="go" data-v="tasks">Open tasks</button></div><div class="row" style="margin:8px 0"><div class="progress" style="flex:1"><div style="width:${ts.length?done/ts.length*100:0}%"></div></div><span class="small mut">${done}/${ts.length} done${un?` · <b style="color:var(--bad)">${un} unassigned</b>`:''}</span></div>${ts.filter(t=>t.status!=='done').slice(0,5).map(t=>`<div class="mrow" style="padding:6px 0;cursor:pointer" data-act="taskOpen" data-id="${t.id}"><button class="tk-check" data-act="taskDone" data-id="${t.id}">${ic('check',12)}</button><span style="flex:1">${esc(t.title)}</span><span class="small mut">${t.assignee?esc(mem(t.assignee).name.split(' ')[0]):'Unassigned'}${t.time?' · '+t.time:''}</span></div>`).join('')}</div>`;
+ return h.replace('<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>On the rota today</b>',card+'<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>On the rota today</b>')};
+const _tsmTk=VIEWS.tsMember;VIEWS.tsMember=()=>{let h=_tsmTk();const d=U.tsDay||today();const ts=tasksOn(U.tsMid,d);if(ts.length)h=h.replace('<details class="ts-sec">',`<div class="pad" style="border-top:1px solid var(--line)"><b>Tasks</b> <span class="small mut">${ts.filter(t=>t.status==='done').length}/${ts.length} done</span>${ts.map(t=>`<div class="mrow" style="padding:6px 0;cursor:pointer" data-act="taskOpen" data-id="${t.id}"><button class="tk-check ${t.status==='done'?'on':''}" data-act="taskDone" data-id="${t.id}">${ic('check',12)}</button><span style="flex:1;${t.status==='done'?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.title)}</span><span class="chip ${PRI[t.priority][0]}">${PRI[t.priority][1]}</span></div>`).join('')}</div><details class="ts-sec">`);return h};
+const _rkTk=renderKiosk;renderKiosk=function(){_rkTk();if(K&&K.step==='act'){ensureRecurring(today());const ts=tasksOn(K.mid,today());if(ts.length){const box=document.querySelector('#kiosk .kiosk');const b=box&&[...box.querySelectorAll('button')].find(x=>x.dataset.act==='kBack');if(b)b.insertAdjacentHTML('beforebegin',`<div class="k-tasks"><b>Your tasks today</b>${ts.map(t=>`<button class="k-task ${t.status==='done'?'done':''}" data-act="kTask" data-id="${t.id}"><span class="tk-check ${t.status==='done'?'on':''}">${ic('check',14)}</span><span>${esc(t.title)}${t.time?` · ${t.time}`:''}</span></button>`).join('')}</div>`)}}};
+A.kTask=el=>{const t=S.tasks.find(x=>x.id===el.dataset.id);if(!t)return;if(t.status==='done'){t.status='todo';delete t.doneAt}else{t.status='done';t.doneAt=Date.now();t.doneBy=t.assignee;t.checklist.forEach(c=>c.done=true)}save();renderKiosk()};
+const _aiTk=aiAnswer;aiAnswer=function(raw){const q=raw.toLowerCase();if(/\btasks?\b|to-?do/.test(q)){const d=/tomorrow/.test(q)?addDays(today(),1):today();ensureRecurring(d);const lbl=d===today()?'today':'tomorrow';let ts=S.tasks.filter(t=>t.date===d);const named=activeMembers().find(m=>q.includes(m.name.split(' ')[0].toLowerCase()));if(named)ts=ts.filter(t=>t.assignee===named.id);const open=ts.filter(t=>t.status!=='done');
+ if(!ts.length)return`No tasks ${lbl}${named?' for '+esc(named.name):''}.`;return`${open.length} of ${ts.length} task${ts.length>1?'s':''} still open ${lbl}${named?' for '+esc(named.name):''}${ts.some(t=>!t.assignee)?` (${ts.filter(t=>!t.assignee).length} unassigned)`:''}:${tbl(['Task','Assigned to','Time','Status'],ts.map(t=>[esc(t.title),t.assignee?esc(mem(t.assignee).name):'<b>Unassigned</b>',t.time||'—',TST[t.status]]))}`}return _aiTk(raw)};
+
+A.tkStop=()=>{const id=D.template;S.taskTemplates=S.taskTemplates.filter(p=>p.id!==id);S.tasks=S.tasks.filter(x=>!(x.template===id&&x.date>today()&&x.status!=='done'));save();closeDrawer();render();toast('This task will no longer repeat')};
 
 /* ================= events ================= */
 document.addEventListener('click',e=>{document.querySelectorAll('details.msel[open]').forEach(d=>{if(!d.contains(e.target))d.removeAttribute('open')});const el=e.target.closest('[data-act]');if(!el)return;if(el.tagName==='A')e.preventDefault();if(el.tagName==='BUTTON'&&el.closest('form'))e.preventDefault();const f=A[el.dataset.act];if(f)f(el,e)});
