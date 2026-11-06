@@ -6,7 +6,7 @@
 // runs on devices that opened the site once with ?online=1 (and ?online=0 turns
 // it off again on that device). Set it to true to switch everyone over.
 (function () {
-  var ONLINE_FOR_EVERYONE = false;
+  var ONLINE_FOR_EVERYONE = true;
   var q = location.search, on = false;
   try {
     if (/[?&]online=1\b/.test(q)) localStorage.setItem('pe-online', '1');
