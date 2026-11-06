@@ -187,8 +187,9 @@ language sql stable security definer set search_path = public as $$
       end
     when 'admin' then
       case
-        when c in ('notes','audit') then public.pe_in_org(o)
-        when c = 'exports'          then public.pe_is_admin(o) or m = public.pe_my_member(o)
+        when c = 'notes'   then public.pe_my_role(o) in ('Owner','Admin','Manager')
+        when c = 'audit'   then public.pe_in_org(o)
+        when c = 'exports' then public.pe_is_admin(o) or m = public.pe_my_member(o)
         else public.pe_is_admin(o)
       end
     else false end
@@ -210,12 +211,25 @@ create policy "see own sign-ins" on public.pe_people for select to authenticated
   using (user_id = auth.uid() or public.pe_is_admin(org_id));
 drop policy if exists "admins remove sign-ins" on public.pe_people;
 create policy "admins remove sign-ins" on public.pe_people for delete to authenticated
-  using (public.pe_is_admin(org_id) and user_id <> auth.uid());
+  using (public.pe_is_admin(org_id) and user_id <> auth.uid()
+         and (role <> 'Owner' or public.pe_my_role(org_id) = 'Owner'));
 
 drop policy if exists "admins and managers manage invites" on public.pe_invites;
-create policy "admins and managers manage invites" on public.pe_invites for all to authenticated
-  using (public.pe_can_manage(org_id, member_id))
-  with check (public.pe_can_manage(org_id, member_id) and (role in ('Manager','Member') or public.pe_is_admin(org_id)));
+drop policy if exists "see invites" on public.pe_invites;
+drop policy if exists "send invites" on public.pe_invites;
+drop policy if exists "admins change invites" on public.pe_invites;
+drop policy if exists "admins remove invites" on public.pe_invites;
+create policy "see invites" on public.pe_invites for select to authenticated
+  using (public.pe_can_manage(org_id, member_id));
+create policy "send invites" on public.pe_invites for insert to authenticated
+  with check (public.pe_can_manage(org_id, member_id)
+              and (role = 'Member' or (role in ('Manager','Admin') and public.pe_is_admin(org_id))
+                   or (role = 'Owner' and public.pe_my_role(org_id) = 'Owner')));
+create policy "admins change invites" on public.pe_invites for update to authenticated
+  using (public.pe_is_admin(org_id))
+  with check (public.pe_is_admin(org_id) and (role <> 'Owner' or public.pe_my_role(org_id) = 'Owner'));
+create policy "admins remove invites" on public.pe_invites for delete to authenticated
+  using (public.pe_is_admin(org_id));
 
 drop policy if exists "read rows" on public.pe_rows;
 create policy "read rows" on public.pe_rows for select to authenticated
@@ -230,6 +244,21 @@ create policy "change rows" on public.pe_rows for update to authenticated
 -- No hard deletes from the app: records are marked deleted so other devices hear about it.
 
 -- 5. Checks on what people may change on their own records --------------
+-- Is this clock-in inside a week whose timesheet has been approved?
+-- (approvals are keyed "<member>|<YYYY-MM-DD of the week's first day>")
+create or replace function public.pe_week_locked(o text, m text, d jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.pe_rows a
+    where a.org_id = o and a.coll = 'approvals' and a.member_id = m and not a.deleted
+      and a.data->>'status' = 'approved'
+      and (d ? 'in') and jsonb_typeof(d->'in') = 'number'
+      and (case when split_part(a.id,'|',2) ~ '^\d{4}-\d{2}-\d{2}$' then
+             (to_timestamp((d->>'in')::double precision / 1000) at time zone 'Europe/London')::date
+             between split_part(a.id,'|',2)::date and split_part(a.id,'|',2)::date + 6
+           else false end))
+$$;
+
 create or replace function public.pe_rows_check() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
@@ -237,19 +266,37 @@ declare
   admin  boolean := public.pe_is_admin(new.org_id);
   boss   boolean := public.pe_can_manage(new.org_id, new.member_id)
                     or (coalesce(new.member_id,'') = '' and public.pe_my_role(new.org_id) in ('Owner','Admin','Manager'));
+  myrole text := public.pe_my_role(new.org_id);
 begin
   new.updated_at := now();
   new.updated_by := auth.uid();
+  -- a record never changes company, kind or id
+  if tg_op = 'UPDATE' and (new.org_id, new.coll, new.id) is distinct from (old.org_id, old.coll, old.id) then
+    raise exception 'Records cannot be moved';
+  end if;
   if tg_op = 'UPDATE' and (new.member_id is distinct from old.member_id) and not (admin or boss) then
     raise exception 'You can''t move this record to someone else';
   end if;
 
-  -- members: the record id is the person; only admins hand out Owner/Admin
+  -- members: the record id is the person. Only owners/admins set roles; only owners make owners.
   if new.coll = 'members' then
     new.member_id := new.id;
-    if not admin and coalesce(new.data->>'role','Member') in ('Owner','Admin')
-       and (tg_op = 'INSERT' or new.data->>'role' is distinct from old.data->>'role') then
-      raise exception 'Only an owner or admin can make someone an owner or admin';
+    if (tg_op = 'INSERT' and coalesce(new.data->>'role','Member') <> 'Member')
+       or (tg_op = 'UPDATE' and new.data->>'role' is distinct from old.data->>'role') then
+      if not admin then
+        raise exception 'Only an owner or admin can change someone''s role';
+      end if;
+      if new.data->>'role' = 'Owner' and myrole <> 'Owner' then
+        raise exception 'Only an owner can make someone an owner';
+      end if;
+    end if;
+  end if;
+
+  -- the change log: written by its author only, never edited
+  if new.coll = 'audit' and not admin then
+    if tg_op = 'UPDATE' then raise exception 'The change log can''t be edited'; end if;
+    if new.data->>'by' is distinct from public.pe_my_member(new.org_id) then
+      raise exception 'Change log entries must be your own';
     end if;
   end if;
 
@@ -268,12 +315,19 @@ begin
   -- staff acting on their own records (not as a manager/admin)
   if not (admin or boss) then
     if new.coll = 'requests' then
-      if tg_op = 'INSERT' and coalesce(new.data->>'status','pending') <> 'pending' then
+      if tg_op = 'INSERT' and (coalesce(new.data->>'status','pending') <> 'pending' or new.deleted) then
         raise exception 'Leave requests start as pending';
       end if;
-      if tg_op = 'UPDATE' and new.data->>'status' is distinct from old.data->>'status'
-         and not (old.data->>'status' = 'pending' and new.deleted) then
-        raise exception 'Only a manager can approve or reject leave';
+      -- a person may change or cancel their request only while it is still pending
+      if tg_op = 'UPDATE' and (coalesce(old.data->>'status','pending') <> 'pending' or old.deleted
+         or coalesce(new.data->>'status','pending') <> 'pending') then
+        raise exception 'Only a manager can change leave once it has been decided';
+      end if;
+    elsif new.coll = 'entries' then
+      -- clock-ins in a week that has been approved are locked
+      if public.pe_week_locked(new.org_id, new.member_id, new.data)
+         or (tg_op = 'UPDATE' and public.pe_week_locked(old.org_id, old.member_id, old.data)) then
+        raise exception 'That week''s timesheet has been approved, so it can''t be changed';
       end if;
     elsif new.coll = 'docs' then
       if tg_op = 'INSERT' or (new.data - 'viewedAt') is distinct from (old.data - 'viewedAt') or new.deleted <> old.deleted then
@@ -292,6 +346,27 @@ end $$;
 drop trigger if exists pe_rows_check on public.pe_rows;
 create trigger pe_rows_check before insert or update on public.pe_rows
   for each row execute function public.pe_rows_check();
+
+-- When someone asks for leave, let the managers know (staff can't write notifications themselves)
+create or replace function public.pe_notify_request() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare nm text;
+begin
+  if new.coll = 'requests' and tg_op = 'INSERT' and coalesce(new.data->>'status','pending') = 'pending'
+     and new.member_id = public.pe_my_member(new.org_id) and not public.pe_is_admin(new.org_id) then
+    select data->>'name' into nm from public.pe_rows where org_id = new.org_id and coll = 'members' and id = new.member_id;
+    insert into public.pe_rows (org_id, coll, id, data)
+    values (new.org_id, 'notes', 'req-' || new.id,
+            jsonb_build_object('id', 'req-' || new.id, 'icon', 'plane', 'read', false,
+                               'at', (extract(epoch from now()) * 1000)::bigint,
+                               'text', coalesce(nm, 'Someone') || ' asked for time off'))
+    on conflict do nothing;
+  end if;
+  return null;
+end $$;
+drop trigger if exists pe_notify_request on public.pe_rows;
+create trigger pe_notify_request after insert on public.pe_rows
+  for each row execute function public.pe_notify_request();
 
 -- Keep sign-in roles in step with the People page
 create or replace function public.pe_sync_role() returns trigger
@@ -316,10 +391,19 @@ create trigger pe_sync_role after insert or update on public.pe_rows
 create or replace function public.pe_link_invites_for(uid uuid, em text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
+  -- only once the person has proved they own the email address
+  if not exists (select 1 from auth.users where id = uid and email_confirmed_at is not null and lower(email) = lower(em)) then
+    return;
+  end if;
   insert into public.pe_people (org_id, user_id, member_id, role, email)
-  select i.org_id, uid, i.member_id, i.role, lower(em)
+  select i.org_id, uid, i.member_id,
+         coalesce((select case when r.data->>'role' in ('Owner','Admin','Manager','Member') then r.data->>'role' end
+                   from public.pe_rows r where r.org_id = i.org_id and r.coll = 'members' and r.id = i.member_id and not r.deleted), 'Member'),
+         lower(em)
   from public.pe_invites i
   where lower(i.email) = lower(em)
+    and exists (select 1 from public.pe_rows r where r.org_id = i.org_id and r.coll = 'members' and r.id = i.member_id
+                and not r.deleted and not coalesce((r.data->>'archived')::boolean, false))
   on conflict do nothing;
   delete from public.pe_invites i where lower(i.email) = lower(em)
     and exists (select 1 from public.pe_people p where p.org_id = i.org_id and p.user_id = uid);
@@ -332,8 +416,9 @@ begin
   return new;
 end $$;
 drop trigger if exists pe_on_new_user on auth.users;
-create trigger pe_on_new_user after insert on auth.users
-  for each row execute function public.pe_on_new_user();
+create trigger pe_on_new_user after insert or update of email_confirmed_at on auth.users
+  for each row when (new.email_confirmed_at is not null)
+  execute function public.pe_on_new_user();
 
 create or replace function public.pe_on_invite() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -371,8 +456,8 @@ declare o text; em text;
 begin
   if auth.uid() is null then raise exception 'Sign in first'; end if;
   if coalesce(trim(company),'') = '' then raise exception 'Enter your company name'; end if;
-  if (select count(*) from public.pe_people where user_id = auth.uid() and role = 'Owner') >= 5 then
-    raise exception 'You already own the maximum number of companies';
+  if (select count(*) from public.pe_orgs where created_by = auth.uid()) >= 3 then
+    raise exception 'You''ve reached the maximum number of companies for one account';
   end if;
   select email into em from auth.users where id = auth.uid();
   insert into public.pe_orgs (name, created_by) values (trim(company), auth.uid()) returning id into o;
@@ -380,11 +465,8 @@ begin
   return o;
 end $$;
 
--- Is there an invite waiting for this email? (lets the sign-in page say "check your email")
-create or replace function public.pe_has_invite(em text) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.pe_invites where lower(email) = lower(em))
-$$;
+-- (an earlier version had pe_has_invite; removed so nobody can test which emails are invited)
+drop function if exists public.pe_has_invite(text);
 
 -- 7. Files: payslips, P45s (bucket "pe-files", path <org>/<member>/<file>) --
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -415,8 +497,17 @@ grant all on public.pe_orgs, public.pe_people, public.pe_invites, public.pe_rows
 
 revoke all on function public.pe_whoami(), public.pe_create_org(text, text) from public, anon;
 grant execute on function public.pe_whoami(), public.pe_create_org(text, text) to authenticated;
-grant execute on function public.pe_has_invite(text) to anon, authenticated;
 revoke execute on function public.pe_link_invites_for(uuid, text) from public, anon, authenticated;
+revoke execute on function public.pe_my_member(text), public.pe_my_role(text), public.pe_in_org(text), public.pe_is_admin(text),
+  public.pe_manages(text, text), public.pe_mgr_sees_all(text), public.pe_can_see(text, text), public.pe_can_see_time(text, text),
+  public.pe_can_manage(text, text), public.pe_can_read(text, text, text), public.pe_can_write(text, text, text),
+  public.pe_week_locked(text, text, jsonb) from public, anon;
+grant execute on function public.pe_my_member(text), public.pe_my_role(text), public.pe_in_org(text), public.pe_is_admin(text),
+  public.pe_manages(text, text), public.pe_mgr_sees_all(text), public.pe_can_see(text, text), public.pe_can_see_time(text, text),
+  public.pe_can_manage(text, text), public.pe_can_read(text, text, text), public.pe_can_write(text, text, text),
+  public.pe_week_locked(text, text, jsonb) to authenticated;
+revoke execute on function public.pe_rows_check(), public.pe_sync_role(), public.pe_on_new_user(), public.pe_on_invite(),
+  public.pe_notify_request() from public, anon, authenticated;
 
 -- 9. Live updates between devices ------------------------------------------
 do $$ begin

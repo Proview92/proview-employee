@@ -136,7 +136,8 @@
     const admin = O.role === 'Owner' || O.role === 'Admin', mgr = O.role === 'Manager';
     const c = row.coll, m = row.member_id;
     if (SHARED.has(c)) return admin || (mgr && ['needs', 'rotaSettings', 'taskTemplates'].includes(c));
-    if (['notes', 'audit'].includes(c)) return true;
+    if (c === 'notes') return admin || mgr;          // staff leave requests are announced by the server
+    if (c === 'audit') return true;
     if (c === 'exports') return admin || m === O.member;
     if (c === 'invoices') return admin;
     if (c === 'ai') return m === O.member;
@@ -465,8 +466,12 @@
       const email = String(m.email || '').trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) continue;
       const role = ['Owner', 'Admin', 'Manager', 'Member'].includes(m.role) ? m.role : 'Member';
-      const { error } = await O.sb.from('pe_invites').upsert({ org_id: O.org, email, member_id: m.id, role, invited_by: O.user.id }, { onConflict: 'org_id,member_id' });
-      if (error) { failed = friendly(error); continue; }
+      const inv = { org_id: O.org, email, member_id: m.id, role, invited_by: O.user.id };
+      const admin = O.role === 'Owner' || O.role === 'Admin';
+      const { error } = admin
+        ? await O.sb.from('pe_invites').upsert(inv, { onConflict: 'org_id,member_id' })
+        : await O.sb.from('pe_invites').insert({ ...inv, role: 'Member' });
+      if (error && error.code !== '23505') { failed = friendly(error); continue; }
       const r = await O.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: HERE, shouldCreateUser: true, data: { invited: true, name: m.name } } });
       if (r.error) { failed = friendly(r.error); continue; }
       O.invited.add(m.id); sent++;
@@ -568,10 +573,7 @@
     if (error) {
       setLoading('');
       let msg = friendly(error);
-      if (/Invalid login/i.test(error.message || '')) {
-        const { data: inv } = await O.sb.rpc('pe_has_invite', { em: email }).catch(() => ({ data: false }));
-        if (inv) msg = 'You’ve been invited but haven’t set a password yet. Open the sign-in link in your invite email, or use “Forgot password?”.';
-      }
+      if (/Invalid login/i.test(error.message || '')) msg = 'That email or password isn’t right. If you were invited, open the sign-in link in your invite email first, or use “Forgot password?”.';
       if (/Email not confirmed/i.test(error.message || '')) { LG.unconfirmed = email; msg += ' <button type="button" class="lg-link" data-act="peResend">Send it again</button>'; }
       LG.err = ''; LG.errHtml = msg; renderLogin(); showErrHtml(); return;
     }
