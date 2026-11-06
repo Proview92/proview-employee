@@ -649,7 +649,6 @@ body.signed-out #login{background:#f4f3ef}
 .pri2{background:linear-gradient(135deg,#2f84d4 0%,#5a5fbb 100%);border-color:transparent;color:#fff}.pri2:hover{filter:brightness(.95)}
 .ghost2{background:transparent;border-color:transparent;height:32px;padding:0 11px;font-size:13px;border-radius:8px}.ghost2:hover{background:rgba(0,0,0,.05)}
 .auth2-row{display:flex;justify-content:space-between;align-items:center}
-.auth2-demo{text-align:center;font-size:12.5px;color:#8b8b95;margin-top:16px;line-height:1.8}
 body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
 @media (max-width:1180px){.ph-sheet,.ph-toast{display:none}.auth2-art h2{font-size:32px;max-width:300px}.ph{width:190px;right:36px}}
 @media (max-width:820px){
@@ -657,10 +656,22 @@ body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
  .auth2-form{padding:24px 14px;align-content:start;min-height:100vh}
  .auth2-form form{padding:26px 20px;border-radius:18px;margin-top:4vh}
  .field2 input{font-size:16px!important}
- .auth2-demo .lg-link{padding:6px 2px;display:inline-block}
  .auth2-logo{width:66px!important;height:45px!important}
  .auth2-fbrand{gap:10px}
  .auth2-fbrand .wordmark2{font-size:15px;letter-spacing:.1em}
+}
+/* Sign-in page: sizes matched to Proview Signage and Proview Bookings */
+.auth2{font-size:15px;line-height:1.45}
+.auth2-sub{font-size:15px}
+.auth2-mut{font-size:15px}
+.auth2 .lg-err{margin-top:0}
+.field2 input{height:auto;line-height:normal}
+.field2 input:focus{outline:2px solid #4a6cd0;outline-offset:-1px;border-color:transparent;box-shadow:none}
+.auth2-row .ghost2{height:44px}
+@media (max-width:820px){
+ .auth2-logo{width:76px!important;height:52px!important}
+ .auth2-fbrand{gap:12px}
+ .auth2-fbrand .wordmark2{font-size:17px;letter-spacing:.14em}
 }
 </style>
 </head>
@@ -2186,19 +2197,51 @@ function renderLogin(){const el=$('#login');const now=new Date();const t=now.toL
   <div class="ph-toast"><span class="ph-ok">✓</span><div><b>Clocked in · 08:58</b><span>Front desk · Head office</span></div></div>
   <div class="ph-sheet"><span>This week</span><b>37h 30m</b><div class="ph-bars"><i style="height:70%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:90%"></i><i style="height:75%"></i><i style="height:25%"></i><i style="height:0"></i></div></div>
   <div class="auth2-sub">Clock in and out, take breaks, and see your tasks, timesheets and P45s.</div></div>
- <div class="auth2-form"><div><form data-act-submit="doLogin" autocomplete="on">
+ <div class="auth2-form"><div>${LG.mode==='signup'?signupForm():`<form data-act-submit="doLogin" autocomplete="on">
   <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
-  <h1>Sign in</h1><p class="auth2-mut">See your shifts, clock in and out, and check your tasks.</p>
+  <h1>Sign in</h1><p class="auth2-mut">Manage your shifts, timesheets and tasks.</p>
+  <div>${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}</div>
   <label class="field2">Email or phone<input id="lgId" name="username" autocomplete="username" placeholder="you@company.com" value="${esc(LG.id)}"></label>
   <label class="field2">Password<div class="pw2"><input id="lgPw" name="password" type="${LG.show?'text':'password'}" autocomplete="current-password" placeholder="••••••••"><button type="button" class="pw2-eye" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password" title="${LG.show?'Hide':'Show'} password">${ic('eye',18)}</button></div></label>
-  ${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}
   <button class="btn2 pri2" type="submit">Sign in</button>
-  <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="lgKiosk">Clock in at kiosk</button><button type="button" class="btn2 ghost2" data-act="lgForgot">Forgot password?</button></div>
- </form>
- <div class="auth2-demo">Demo, password 1234: <button type="button" class="lg-link" data-act="lgFill" data-v="chloe@proviewtech.co.uk">chloe@proviewtech.co.uk</button> (staff) · <button type="button" class="lg-link" data-act="lgFill" data-v="sam@proviewtech.co.uk">sam@proviewtech.co.uk</button> (owner)</div></div></div></div>`}
-A.lgShow=()=>{LG.id=$('#lgId').value;const pw=$('#lgPw').value;LG.show=!LG.show;renderLogin();$('#lgPw').value=pw};
-A.lgFill=el=>{LG.id=el.dataset.v;LG.err='';renderLogin();$('#lgPw').value='1234';$('#lgPw').focus()};
-A.lgKiosk=()=>{A.kiosk()};
+  <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="lgMode" data-m="signup">Create an account</button><button type="button" class="btn2 ghost2" data-act="lgForgot">Forgot password?</button></div>
+ </form>`}</div></div></div>`}
+/* Create an account: starts a new company in this browser with you as the owner */
+function signupForm(){const F=LG.su||{};const pw=(id,ac,ph)=>`<div class="pw2"><input id="${id}" type="${LG.show?'text':'password'}" autocomplete="${ac}" placeholder="${ph}"><button type="button" class="pw2-eye" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password" title="${LG.show?'Hide':'Show'} password">${ic('eye',18)}</button></div>`;
+ return`<form data-act-submit="doSignup" autocomplete="on" novalidate>
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
+  <h1>Create your account</h1><p class="auth2-mut">Set up your company, then add your team so they can clock in.</p>
+  <div>${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}</div>
+  <label class="field2">Your name<input id="suName" autocomplete="name" placeholder="Full name" value="${esc(F.name||'')}"></label>
+  <label class="field2">Company name<input id="suOrg" autocomplete="organization" placeholder="Your business" value="${esc(F.org||'')}"></label>
+  <label class="field2">Email<input id="suEmail" type="email" autocomplete="email" placeholder="you@company.com" value="${esc(F.email||'')}"></label>
+  <label class="field2">Password${pw('suPw','new-password','At least 8 characters')}</label>
+  <label class="field2">Confirm password${pw('suPw2','new-password','Type it again')}</label>
+  <button class="btn2 pri2" type="submit">Create account</button>
+  <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="lgMode" data-m="signin">I already have an account</button></div>
+ </form>`}
+A.lgMode=el=>{LG.mode=el.dataset.m;LG.err='';LG.show=false;renderLogin();($('#suName')||$('#lgId'))?.focus()};
+A.doSignup=async()=>{const v=id=>$('#'+id).value.trim();const name=v('suName'),org=v('suOrg'),email=v('suEmail').toLowerCase(),pw=$('#suPw').value,pw2=$('#suPw2').value;
+ LG.su={name,org,email};const fail=m=>{LG.err=m;renderLogin();$('#suPw').value=pw;$('#suPw2').value=pw2};
+ if(!name||!org||!email)return fail('Fill in your name, company name and email.');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return fail('Enter a valid email address.');
+ if(pw.length<8)return fail('Use at least 8 characters for your password.');
+ if(pw!==pw2)return fail('The two passwords don’t match. Please type them again.');
+ if(S.members.some(m=>!m.archived&&(m.email||'').toLowerCase()===email))return fail('There’s already an account with that email. Sign in instead.');
+ const real=S.entries.some(e=>!e.demo)||S.members.some(m=>!m.archived&&m.pwHash);
+ if(real&&!confirm(`This browser already has the company “${S.org.name}”. Creating a new account replaces it. Continue?`))return;
+ const n=defaults();n.org.name=org;n.org.email=email;n.org.address='';
+ n.groups=[{id:'g1',name:'Team'}];
+ n.schedules=[{id:'sc1',name:'Standard week',type:'fixed',days:{1:['09:00','17:30'],2:['09:00','17:30'],3:['09:00','17:30'],4:['09:00','17:30'],5:['09:00','17:30']},flexHours:8,breakMins:30,dailyOT:9,weeklyOT:40,isDefault:true}];
+ n.activities=[{id:'a1',name:'Work',color:'#4a6cd0',billable:true},{id:'a2',name:'Admin',color:'#8b8b95',billable:false}];
+ n.timeoff.policies=[{id:'tp1',name:'Annual leave',color:'#4a6cd0',paid:true,allowance:28},{id:'tp2',name:'Sick leave',color:'#d92d20',paid:true,allowance:10},{id:'tp3',name:'Unpaid leave',color:'#8b8b95',paid:false,allowance:0}];
+ n.timeoff.holidays=UK_HOLIDAYS.map(([date,name])=>({id:uid(),date,name}));
+ n.docsSeeded=true;n.tasks=[];n.docs=[];
+ const id='m'+uid();n.members=[{id,name,role:'Owner',group:'g1',schedule:'sc1',rate:0,billRate:0,email,phone:'',pin:String(1000+Math.floor(Math.random()*9000)),pwHash:await sha(pw),color:COLORS[0],archived:false,joined:today(),qr:uid()+uid()}];
+ n.me=id;S=upgrade(n);save();
+ LG={id:'',show:false,err:'',keep:true};try{localStorage.setItem(SESSION_KEY,id)}catch(e){}
+ U.view='getstarted';render();toast(`Welcome, ${name.split(' ')[0]} — your account is ready`)};
+A.lgShow=()=>{if(LG.mode==='signup'){const g=id=>$('#'+id).value;LG.su={name:g('suName'),org:g('suOrg'),email:g('suEmail')};const a=g('suPw'),b=g('suPw2');LG.show=!LG.show;renderLogin();$('#suPw').value=a;$('#suPw2').value=b;return}LG.id=$('#lgId').value;const pw=$('#lgPw').value;LG.show=!LG.show;renderLogin();$('#lgPw').value=pw};
 A.lgForgot=()=>openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Forgot your password?</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="mut">Ask your manager to reset it. They can set a new kiosk PIN for you in People, and you can sign in with that PIN, then choose a new password.</p><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="closeModal">Got it</button></div></div>`,420);
 A.doLogin=async()=>{const id=$('#lgId').value.trim().toLowerCase(),pw=$('#lgPw').value;LG.id=id;LG.keep=true;
  if(!id||!pw){LG.err='Enter your email or phone and your password.';return renderLogin()}
