@@ -679,6 +679,7 @@ body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
 .auth2-art h2{max-width:320px}
 @media (max-width:1180px){.auth2-art h2{max-width:250px}}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 <div class="app" id="app">
@@ -855,7 +856,7 @@ function seed(){
  return s}
 
 /* ================= lookups & calculations ================= */
-const mem=id=>S.members.find(m=>m.id===id);
+let mem=id=>S.members.find(m=>m.id===id);
 const act=id=>S.activities.find(a=>a.id===id);
 const proj=id=>S.projects.find(p=>p.id===id);
 const client=id=>S.clients.find(c=>c.id===id);
@@ -2169,7 +2170,7 @@ ICON.eye='<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx
 ICON.lock='<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';
 ICON.doc='<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>';
 const SESSION_KEY='pe-session';
-const sess=()=>{try{return localStorage.getItem(SESSION_KEY)||sessionStorage.getItem(SESSION_KEY)}catch(e){return null}};
+const sess=()=>{if(window.PE_CONFIG)return window.PE_ONLINE&&window.PE_ONLINE.ready?window.PE_ONLINE.member:null;try{return localStorage.getItem(SESSION_KEY)||sessionStorage.getItem(SESSION_KEY)}catch(e){return null}};
 const realUser=()=>mem(sess());
 const isStaff=()=>me()?.role==='Member';
 const STAFF_NAV=[['sHome','Home','home'],['sClock','Time clock','clock'],['sTasks','Tasks','task'],['sSheets','Timesheets','timer'],['sP45','Payslips and P45s','doc']];
@@ -2390,5 +2391,6 @@ setInterval(()=>{if(!isStaff()||!realUser())return;document.querySelectorAll('[d
 render();
 
 </script>
+<script src="cloud.js"></script>
 </body>
 </html>
