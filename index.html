@@ -2495,6 +2495,7 @@ render();
 <script>
 function topMe(act){const t=document.getElementById('top'),vc=document.getElementById('venueCard');if(!t)return;t.querySelector('.top-me')?.remove();const a=vc&&vc.querySelector('.side-av');if(!a)return;const nm=vc.querySelector('.side-me-t b')?.textContent||'',sub=vc.querySelector('.side-me-t span')?.textContent||'';const w=document.createElement('div');w.className='top-me';w.innerHTML=`<button class="top-av" title="${esc(nm+(sub?' · '+sub:''))}" aria-label="My account">${esc(a.textContent)}</button><button class="icon-btn top-out" data-act="${act}" title="Sign out" aria-label="Sign out">${ic('logout',18)}</button>`;w.querySelector('.top-av').onclick=e=>{e.stopPropagation();vc.click()};t.appendChild(w)}
 {const _rt=renderTop,_rn=renderNav;renderTop=function(){const r=_rt.apply(this,arguments);topMe('signOut');return r};renderNav=function(){const r=_rn.apply(this,arguments);topMe('signOut');return r}}
+{const _rtC=renderTop;renderTop=function(){const r=_rtC.apply(this,arguments);try{if(!(typeof isStaff==='function'&&isStaff())){const t=document.getElementById('top');t&&t.querySelectorAll('.pe-portal,.pe-sync,.clockbox,[data-act=whoDrawer],[data-act=kiosk],:scope>span[style*="width:1px"]').forEach(e=>e.remove())}}catch(e){}return r}}
 try{renderNav();renderTop()}catch(e){}
 </script>
 </body>
