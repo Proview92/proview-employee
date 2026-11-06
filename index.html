@@ -444,6 +444,15 @@ tr.subrow td{background:var(--bg);font-size:13px}
 .ai-glow{position:absolute;inset:auto -10% -40% -10%;height:70%;background:radial-gradient(closest-side at 20% 60%,rgba(98,176,236,.35),transparent),radial-gradient(closest-side at 80% 60%,rgba(139,136,220,.4),transparent);filter:blur(10px)}
 .ai-center{position:relative;width:min(680px,92%);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}.ai-logo{color:var(--pri)}
 .ai-box{display:flex;gap:8px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;box-shadow:var(--sh)}.ai-box textarea{flex:1;border:0;outline:none;resize:none;font:inherit;background:none;color:var(--ink)}
+.rota-wrap{overflow:auto}table.rota{min-width:1100px}table.rota td{vertical-align:top;padding:8px}table.rota th.today,table.rota td.today{background:var(--pri-l)}
+.rcell{min-width:118px;height:64px;cursor:pointer;position:relative}.rcell .add{position:absolute;inset:0;display:grid;place-items:center;color:var(--grey);opacity:0;font-size:20px}.rcell:hover .add{opacity:1}
+.shift{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--card));border-radius:8px;padding:5px 8px;margin:2px 0;cursor:pointer;color:var(--ink);font-size:12px;line-height:1.3}
+.shift b{font-size:12.5px}.shift span{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.shift.draft{background:none;border:1.5px dashed var(--c);border-left-width:4px}.shift.open{--c:var(--grey)!important;background:repeating-linear-gradient(135deg,var(--badl) 0 6px,var(--card) 6px 12px);border:1.5px dashed var(--bad);border-left:4px solid var(--bad)}.shift.open b::after{content:' · OPEN';color:var(--bad);font-size:10.5px}
+table.rota td:first-child,table.rota th:first-child{min-width:200px;position:sticky;left:0;background:var(--card);z-index:1}.shift.ot{box-shadow:inset 0 0 0 2px var(--warn)}
+.openrow td{background:var(--badl)}.cover td{background:var(--bg)}.cov{font-size:11.5px;font-weight:650;border-radius:6px;padding:2px 6px;margin:2px 0}.cov.ok{background:var(--okl);color:var(--ok)}.cov.bad{background:var(--badl);color:var(--bad)}
+.need{margin-bottom:10px;box-shadow:none}
+@media print{.rota-wrap{overflow:visible}table.rota{min-width:0;font-size:11px}.filters{display:none}}
 @media (max-width:900px){.ts-page,.donut-card{grid-template-columns:1fr}.ts-sum{position:static}.ev-row{grid-template-columns:34px 60px 1fr}.ev-row .ev-meta{grid-column:1/-1}}
 @media (max-width:900px){.loc-split,.sc-split{grid-template-columns:1fr}.loc-split{height:auto}#locmap{height:420px}.sc-list{position:static}.kv,.frow{grid-template-columns:1fr}.kv>span,.frow>label:first-child{text-align:left}.add-row{grid-template-columns:1fr}}
 @media print{body.printing .app,body.printing #drawer,body.printing #scrim,body.printing #toast{display:none!important}body.printing .modal-bg{position:static;display:block;padding:0;background:none}body.printing .modal-bg .noprint{display:none!important}body.printing .modal{max-width:none;box-shadow:none;border:0}body.printing .inv-paper{padding:0}}
@@ -1652,6 +1661,132 @@ VIEWS.ai=(_orig=>()=>{if(S.ai.length)return _orig().replace('<div class="sugg">'
  return`<div class="ai-hero"><div class="ai-glow"></div><div class="ai-center"><div class="ai-logo">${ic('sparkle',34)}</div><h2>What would you like to know?</h2><form class="ai-box" data-act-submit="aiSend"><textarea id="aiInput" rows="2" placeholder="Show me who's currently clocked in"></textarea><button class="btn pri" title="Ask">${ic('send',16)}</button></form><div class="sugg" style="justify-content:center">${AI_SUGG.map(s=>`<button data-act="aiAsk" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div><button class="btn ghost sm" data-act="aiHow">${ic('sparkle',14)} How it works?</button></div></div>`})(VIEWS.ai);
 A.aiHow=()=>openModal(`<div class="pad"><b style="font-size:18px">How Proview AI works</b><p class="mut">Proview AI answers questions using the data in this workspace — time entries, schedules, time off and people. Nothing leaves your browser. Try asking about hours, overtime, payroll, who's late or who's off.</p><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="closeModal">Got it</button></div></div>`,460);
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='aiInput'&&e.target.tagName==='TEXTAREA'){e.preventDefault();aiAsk(e.target.value)}});
+
+/* ================= Rota: shift planning with auto-generate ================= */
+ICON.rota='<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M13 13h4M7 17h4"/>';ICON.wand='<path d="m4 20 11-11M14 4v3M18 8h3M17 3l-1.5 1.5M20 11l-1.5-1.5"/>';
+NAV.splice(NAV.findIndex(n=>n[0]==='timesheets')+1,0,['rota','Rota','rota']);NAV_MAIN.splice(NAV_MAIN.indexOf('timesheets')+1,0,'rota');TITLES.rota='Rota';
+AI_SUGG.splice(4,0,"Who's on the rota tomorrow?");
+const DSHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const _upgRota=upgrade;upgrade=function(s){s=_upgRota(s);
+ if(!s.rota){s.rota={shifts:[],needs:[
+   {id:'n1',name:'Office cover',days:[1,2,3,4,5],start:'09:00',end:'17:30',breakMins:30,count:3,group:'g1',activity:'a1',location:'l1',holidays:false},
+   {id:'n2',name:'Site crew',days:[1,2,3,4,5],start:'08:00',end:'16:00',breakMins:30,count:2,group:'g2',activity:'a6',location:'l3',holidays:false},
+   {id:'n3',name:'Saturday site',days:[6],start:'08:00',end:'13:00',breakMins:0,count:1,group:'g2',activity:'a6',location:'l3',holidays:false}],
+  settings:{maxDays:5,minRest:11,avoidOT:true,fairWeekends:true},seedPending:true};
+  setTimeout(()=>{if(S.rota.seedPending){S.rota.seedPending=false;const ws=weekStartOf(today());generateRota(ws,{quiet:true});publishWeek(ws,true);generateRota(addDays(ws,7),{quiet:true});save();render()}},0)}
+ s.members.forEach(m=>{if(!m.unavail)m.unavail=[];if(m.shiftPref==null)m.shiftPref=''});return s};
+/* ---------- helpers ---------- */
+const shiftMins=sh=>{let a=toMin(sh.start),b=toMin(sh.end);if(b<=a)b+=1440;return b-a-(+sh.breakMins||0)};
+const shiftEnd=sh=>{let a=toMin(sh.start),b=toMin(sh.end);return atHM(sh.date,sh.start)+((b<=a?b+1440:b)-a)*6e4};
+function rotaShiftsFor(mid,d){return S.rota.shifts.filter(s=>s.member===mid&&s.date===d)}
+function contractedMins(m){const sc=sched(m);if(!sc)return 40*60;if(sc.type==='weekly')return(+sc.weekHours||40)*60;if(sc.type==='flexible')return Object.keys(sc.days).reduce((a,d)=>a+(+sc.dayHours?.[d]||8)*60,0);return Object.values(sc.days).reduce((a,[s,e])=>a+toMin(e)-toMin(s),0)-((sc.breaks||[]).filter(b=>!b.paid).reduce((a,b)=>a+b.mins,0))*Object.keys(sc.days).length}
+function weekMins(mid,ws){let t=0;for(let i=0;i<7;i++)rotaShiftsFor(mid,addDays(ws,i)).forEach(s=>t+=shiftMins(s));return t}
+const isLateShift=sh=>toMin(sh.start)>=12*60;
+function unavailable(m,d){return leaveOn(m.id,d)||(m.unavail||[]).includes(String(dow(d)))}
+function needCover(n,d){return S.rota.shifts.filter(s=>s.date===d&&s.need===n.id&&s.member).length}
+/* ---------- the generator ---------- */
+function generateRota(ws,{quiet=false,replace=true}={}){const st=S.rota.settings;let made=0,gaps=0,ot=0;
+ if(replace)S.rota.shifts=S.rota.shifts.filter(s=>!(s.date>=ws&&s.date<=addDays(ws,6)&&!s.published));
+ const hist={};const from=addDays(ws,-28);S.rota.shifts.filter(s=>s.date>=from&&s.date<ws&&s.member).forEach(s=>{const h=hist[s.member]||(hist[s.member]={wk:0,late:0});if(dow(s.date)%6===0)h.wk++;if(isLateShift(s))h.late++});
+ const members=activeMembers();
+ for(let i=0;i<7;i++){const d=addDays(ws,i),w=dow(d);
+  for(const n of S.rota.needs.filter(n=>n.days.map(Number).includes(w))){
+      let need=(+n.count||0)-needCover(n,d);S.rota.shifts=S.rota.shifts.filter(s=>!(s.date===d&&s.need===n.id&&!s.member&&!s.published));
+   const proto={date:d,start:n.start,end:n.end,breakMins:+n.breakMins||0,activity:n.activity||'',location:n.location||'',need:n.id};const mins=shiftMins(proto),sStart=atHM(d,n.start),sEnd=shiftEnd(proto);
+   for(let k=0;k<need;k++){
+    const pick=()=>{const allowOT=false;let best=null,bs=Infinity;for(const m of members){if(n.group&&m.group!==n.group)continue;if(n.members&&n.members.length&&!n.members.includes(m.id))continue;
+      if(unavailable(m,d)||(!n.holidays&&isHoliday(d,m.id)))continue;
+      if(S.rota.shifts.some(s=>s.member===m.id&&s.date===d))continue;
+      const prev=S.rota.shifts.filter(s=>s.member===m.id&&s.date<d).sort((a,b)=>shiftEnd(b)-shiftEnd(a))[0];if(prev&&sStart-shiftEnd(prev)<st.minRest*36e5)continue;
+      const next=S.rota.shifts.filter(s=>s.member===m.id&&s.date>d).sort((a,b)=>atHM(a.date,a.start)-atHM(b.date,b.start))[0];if(next&&atHM(next.date,next.start)-sEnd<st.minRest*36e5)continue;
+      const days=[...Array(7)].filter((_,j)=>rotaShiftsFor(m.id,addDays(ws,j)).length).length;if(days>=st.maxDays)continue;
+      const target=contractedMins(m)||1,have=weekMins(m.id,ws);if(!allowOT&&st.avoidOT&&have+mins>target)continue;
+      const h=hist[m.id]||{wk:0,late:0};let sc=have/target*10;if(st.fairWeekends&&w%6===0)sc+=h.wk*2;if(isLateShift(proto))sc+=h.late*.5;if(!workday(m,d))sc+=3;
+      if(m.shiftPref==='early'&&isLateShift(proto))sc+=2;if(m.shiftPref==='late'&&!isLateShift(proto))sc+=2;if(m.shiftPref&&((m.shiftPref==='early')!==isLateShift(proto)))sc-=1;
+      if(sc<bs){bs=sc;best=m}}return best};
+    const m=pick(false);const isOT=m?weekMins(m.id,ws)+mins>contractedMins(m):false;
+    if(m){S.rota.shifts.push({id:uid(),member:m.id,...proto,published:false,auto:true,ot:isOT});made++;if(isOT)ot++;const h=hist[m.id]||(hist[m.id]={wk:0,late:0});if(w%6===0)h.wk++;if(isLateShift(proto))h.late++}
+    else{S.rota.shifts.push({id:uid(),member:'',...proto,published:false,auto:true});gaps++}}}}
+ save();if(!quiet){render();toast(`Rota created: ${made} shift${made!==1?'s':''}${gaps?` · ${gaps} open shift${gaps!==1?'s':''} to fill`:''}${ot?` · ${ot} with overtime`:''}`,gaps?'bad':'ok')}return{made,gaps,ot}}
+function publishWeek(ws,quiet){let n=0;S.rota.shifts.forEach(s=>{if(s.date>=ws&&s.date<=addDays(ws,6)&&!s.published){s.published=true;n++}});if(!quiet){notify('rota',`Rota for the week of ${fmtDate(ws,{day:'numeric',month:'short'})} was published (${n} shifts)`);save();render();toast(n?`${n} shifts published`:'Nothing new to publish')}return n}
+/* late = after the published rota shift start, when there is one */
+const _isLateR=isLate;isLate=function(mid,d){const sh=rotaShiftsFor(mid,d).filter(s=>s.published);if(sh.length){const f=firstIn(mid,d);if(f==null)return false;return f>Math.min(...sh.map(s=>atHM(d,s.start)))+(+S.settings.graceMins||0)*6e4}return _isLateR(mid,d)};
+
+/* ---------- Rota page ---------- */
+U.rotaDate=today();U.rotaGroup='';
+VIEWS.rota=()=>{const ws=weekStartOf(U.rotaDate),we=addDays(ws,6);const days=[...Array(7)].map((_,i)=>addDays(ws,i));
+ const ms=scopeMembers(U.scope).filter(m=>!U.rotaGroup||m.group===U.rotaGroup);const admin=isAdmin()||me()?.role==='Manager';
+ const wk=S.rota.shifts.filter(s=>s.date>=ws&&s.date<=we);const unpub=wk.filter(s=>!s.published).length;const open=wk.filter(s=>!s.member);
+ const chip=s=>{const a=act(s.activity);return`<button class="shift ${s.published?'':'draft'} ${s.member?'':'open'} ${s.ot?'ot':''}" style="--c:${a?.color||'var(--pri)'}" data-act="${admin?'shiftEdit':'noop'}" data-id="${s.id}" title="${esc(a?.name||'')} ${esc(locn(s.location)?.name||'')}${s.published?'':' (not published)'}"><b>${fmtT(atHM(s.date,s.start))}–${fmtT(atHM(s.date,s.end))}</b><span>${esc(a?.name||'Shift')}${s.location&&locn(s.location)?` · ${esc(locn(s.location).name)}`:''}</span></button>`};
+ const cell=(m,d)=>{const lv=leaveOn(m.id,d),hol=isHoliday(d,m.id),un=(m.unavail||[]).includes(String(dow(d)));const sh=rotaShiftsFor(m.id,d);
+  return`<td class="rcell ${d===today()?'today':''}" ${admin&&!sh.length?`data-act="shiftNew" data-m="${m.id}" data-d="${d}"`:''}>${lv?`<span class="chip blue">${esc(policy(lv.policy)?.name||'Leave')}</span>`:''}${hol?`<span class="chip purple">${esc(hol.name.split(' (')[0])}</span>`:''}${un&&!lv?'<span class="chip">Unavailable</span>':''}${sh.map(chip).join('')}${admin&&!sh.length&&!lv?'<span class="add">+</span>':''}</td>`};
+ const coverRow=`<tr class="cover"><td><b>Cover</b><div class="small mut">From cover rules</div></td>${days.map(d=>{const ns=S.rota.needs.filter(n=>n.days.map(Number).includes(dow(d))&&(!isHoliday(d)||n.holidays));return`<td>${ns.map(n=>{const c=needCover(n,d);return`<div class="cov ${c>=n.count?'ok':'bad'}" title="${esc(n.name)} ${n.start}–${n.end}">${esc(n.name)} ${c}/${n.count}</div>`}).join('')||'<span class="mut small">—</span>'}</td>`}).join('')}<td></td></tr>`;
+ const openRow=open.length||admin?`<tr class="openrow"><td><b>Open shifts</b><div class="small mut">${open.length} unfilled</div></td>${days.map(d=>`<td class="rcell">${open.filter(s=>s.date===d).map(chip).join('')}</td>`).join('')}<td></td></tr>`:'';
+ return`<div class="filters"><div class="datenav"><button data-act="rotaNav" data-n="-1">${ic('left')}</button><div class="dlabel">${fmtDate(ws,{day:'numeric',month:'short'})} – ${fmtDate(we,{day:'numeric',month:'short'})}<input type="date" value="${U.rotaDate}" data-act-change="rotaPick"></div><button data-act="rotaNav" data-n="1">${ic('right')}</button>${ws!==weekStartOf(today())?`<button class="today-btn" data-act="rotaNav" data-n="0">This week</button>`:''}</div>
+ <select class="inp" data-act-change="setSel" data-k="rotaGroup"><option value="">All groups</option>${opts(S.groups,U.rotaGroup)}</select>${unpub?`<span class="chip amber">${unpub} unpublished</span>`:wk.length?'<span class="chip green">Published</span>':''}<div style="flex:1"></div>
+ ${admin?`<button class="btn" data-act="rotaRules">${ic('cog',15)} Cover rules</button><button class="btn" data-act="rotaCopy">${ic('copy',15)} Copy last week</button><button class="btn" data-act="rotaClear">${ic('trash',15)} Clear drafts</button><button class="btn ghost" data-act="rotaExport">${ic('download',15)}</button><button class="btn ghost" data-act="print" title="Print">${ic('print',15)}</button><button class="btn" data-act="rotaGen" style="border-color:var(--pri);color:var(--pri)">${ic('wand',15)} Auto-generate</button><button class="btn pri" data-act="rotaPublish" ${unpub?'':'disabled'}>${ic('send',15)} Publish</button>`:''}</div>
+ <div class="card rota-wrap"><table class="t rota"><thead><tr><th>Member</th>${days.map(d=>`<th class="${d===today()?'today':''}">${fmtDate(d,{weekday:'short'})} <span style="font-weight:500">${+d.slice(8)}</span></th>`).join('')}<th>Hours</th></tr></thead><tbody>
+ ${ms.map(m=>{const h=weekMins(m.id,ws),t=contractedMins(m);return`<tr><td><div class="row" style="flex-wrap:nowrap">${avatar(m,30)}<div><div class="pname">${esc(m.name)}</div><div class="small mut">${esc(grp(m.group)?.name||'')}${m.shiftPref?` · prefers ${m.shiftPref}s`:''}</div></div></div></td>${days.map(d=>cell(m,d)).join('')}<td class="${h>t?'soon':''}"><b>${_HM(h*6e4)}</b><div class="small mut">of ${_HM(t*6e4)}</div></td></tr>`}).join('')}${openRow}${coverRow}</tbody></table></div>
+ <div class="legend" style="margin-top:10px"><span><i style="background:var(--pri)"></i>Published</span><span><i style="border:1.5px dashed var(--pri);background:none"></i>Draft (not published)</span><span><i style="background:repeating-linear-gradient(135deg,var(--badl) 0 3px,#fff 3px 6px);border:1px dashed var(--bad)"></i>Open shift (nobody available)</span><span><i style="background:var(--warn)"></i>Overtime</span></div>`};
+A.noop=()=>{};
+A.rotaNav=el=>{const n=+el.dataset.n;U.rotaDate=n?addDays(U.rotaDate,n*7):today();render()};
+A.rotaPick=el=>{if(el.value){U.rotaDate=el.value;render()}};
+A.rotaGen=()=>{const ws=weekStartOf(U.rotaDate);if(!S.rota.needs.length)return toast('Add a cover rule first','bad');const drafts=S.rota.shifts.filter(s=>s.date>=ws&&s.date<=addDays(ws,6)&&!s.published).length;
+ const go=()=>generateRota(ws);if(drafts)ask(`Auto-generate replaces the ${drafts} draft shift${drafts>1?'s':''} this week. Published shifts are kept.`,go,'Generate');else go()};
+A.rotaPublish=()=>publishWeek(weekStartOf(U.rotaDate));
+A.rotaClear=()=>{const ws=weekStartOf(U.rotaDate);ask('Remove all draft (unpublished) shifts this week?',()=>{S.rota.shifts=S.rota.shifts.filter(s=>!(s.date>=ws&&s.date<=addDays(ws,6)&&!s.published));save();render();toast('Drafts cleared')},'Clear')};
+A.rotaCopy=()=>{const ws=weekStartOf(U.rotaDate),ps=addDays(ws,-7);const src=S.rota.shifts.filter(s=>s.date>=ps&&s.date<ws);if(!src.length)return toast('Last week has no shifts to copy','bad');let n=0,skip=0;
+ src.forEach(s=>{const d=addDays(s.date,7);const m=s.member&&mem(s.member);if(m&&(unavailable(m,d)||isHoliday(d,m.id)||rotaShiftsFor(m.id,d).length)){skip++;return}if(!s.member&&S.rota.shifts.some(x=>x.date===d&&x.need===s.need&&!x.member))return;S.rota.shifts.push({...s,id:uid(),date:d,published:false,auto:false});n++});save();render();toast(`${n} shifts copied as drafts${skip?` · ${skip} skipped (leave, holiday or already rostered)`:''}`)};
+A.rotaExport=()=>{const ws=weekStartOf(U.rotaDate);const rows=[['Date','Day','Member','Start','End','Break (min)','Hours','Activity','Location','Status']];S.rota.shifts.filter(s=>s.date>=ws&&s.date<=addDays(ws,6)).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).forEach(s=>rows.push([s.date,DSHORT[dow(s.date)],mem(s.member)?.name||'OPEN SHIFT',s.start,s.end,s.breakMins||0,(shiftMins(s)/60).toFixed(2),act(s.activity)?.name||'',locn(s.location)?.name||'',s.published?'Published':'Draft']));recordExport(`rota-${ws}.csv`,toCSV(rows));toast('Rota exported')};
+/* shift drawer */
+function shiftDrawer(sh){D={kind:'shift',...sh};
+ openDrawer(sh.id?'Edit Shift':'Add Shift',`${fld('Member',`<select class="inp" data-dr="member"><option value="">Open shift (unassigned)</option>${opts(activeMembers(),D.member)}</select>`)}${fld('Date',drIn('date',D.date,'date'))}<div class="grid2"><div>${fld('Start',drIn('start',D.start,'time'))}</div><div>${fld('End',drIn('end',D.end,'time'))}</div></div><div class="small mut" style="margin-top:4px">An end time before the start means the shift finishes the next day.</div>
+ ${fld('Unpaid break (minutes)',drIn('breakMins',D.breakMins||0,'number','min="0"'))}${fld('Activity',drSel('activity',activeActs(),D.activity,{none:'No activity'}))}${fld('Location',drSel('location',S.locations.filter(l=>!l.archived),D.location,{none:'No location'}))}${fld('Note',`<textarea class="inp" data-dr="note">${esc(D.note||'')}</textarea>`)}
+ ${sh.id?`<div class="small mut" style="margin-top:12px">${sh.published?'Published — changes are visible to the member straight away.':'Draft — not visible to the member until you publish.'}</div>`:''}`,
+ `${sh.id?`<button class="btn danger" data-act="shiftDel" style="flex:0">${ic('trash',16)}</button>`:''}<button class="btn" data-act="closeDrawer">Cancel</button><button class="btn pri" data-act="shiftSave">Save</button>`)}
+A.shiftNew=el=>{const m=mem(el.dataset.m);const sc=sched(m);const d=el.dataset.d;const t=sc?.days[dow(d)]||['09:00','17:00'];shiftDrawer({member:m.id,date:d,start:t[0],end:t[1],breakMins:(sc?.breaks||[]).filter(b=>!b.paid).reduce((a,b)=>a+b.mins,0),activity:'',location:locationsFor(m.id)[0]?.id||'',note:'',published:false})};
+A.shiftEdit=el=>{const s=S.rota.shifts.find(x=>x.id===el.dataset.id);if(s)shiftDrawer({...s})};
+A.shiftSave=()=>{if(!D.date||!D.start||!D.end)return toast('Enter the date and times','bad');if(D.start===D.end)return toast('Start and end can\'t be the same','bad');const mins=shiftMins(D);if(mins<=0)return toast('Break is longer than the shift','bad');
+ if(D.member){const m=mem(D.member);const clash=S.rota.shifts.find(s=>s.id!==D.id&&s.member===D.member&&atHM(s.date,s.start)<shiftEnd(D)&&shiftEnd(s)>atHM(D.date,D.start));if(clash)return toast(`${m.name.split(' ')[0]} already has a shift then`,'bad');if(leaveOn(m.id,D.date))return toast(`${m.name.split(' ')[0]} is on leave that day`,'bad')}
+ const{kind,...rec}=D;rec.breakMins=+rec.breakMins||0;const wasNew=!rec.id;if(wasNew){rec.id=uid();rec.published=false;S.rota.shifts.push(rec)}else{const i=S.rota.shifts.findIndex(s=>s.id===rec.id);rec.auto=false;S.rota.shifts[i]=rec}
+ save();closeDrawer();render();toast(wasNew?'Shift added (draft)':'Shift saved')};
+A.shiftDel=()=>{const id=D.id;ask('Delete this shift?',()=>{S.rota.shifts=S.rota.shifts.filter(s=>s.id!==id);save();closeDrawer();render();toast('Shift deleted')})};
+/* cover rules + rota settings */
+A.rotaRules=()=>{D={kind:'needs',needs:JSON.parse(JSON.stringify(S.rota.needs)),st:{...S.rota.settings}};renderRules(true)};
+function renderRules(first){const body=`<p class="mut" style="margin-top:14px">Tell the rota how many people you need and when. Auto-generate fills these, skipping anyone on leave, on a bank holiday or marked unavailable.</p>
+ ${D.needs.map((n,i)=>`<div class="card pad need"><div class="row between"><input class="inp" style="max-width:240px;font-weight:650" value="${esc(n.name)}" data-need="${i}:name" placeholder="Rule name"><button class="btn ghost sm" data-act="needDel" data-i="${i}">${ic('trash',14)}</button></div>
+  <div class="daybtns" style="margin:10px 0">${[1,2,3,4,5,6,0].map(d=>`<button class="${n.days.map(Number).includes(d)?'on':''}" data-act="needDay" data-i="${i}" data-d="${d}">${DSHORT[d][0]}</button>`).join('')}</div>
+  <div class="row"><input class="inp" type="time" style="width:120px" value="${n.start}" data-need="${i}:start"><span>to</span><input class="inp" type="time" style="width:120px" value="${n.end}" data-need="${i}:end"><span class="mut">people</span><input class="inp" type="number" min="1" style="width:70px" value="${n.count}" data-need="${i}:count"><span class="mut">break</span><input class="inp" type="number" min="0" style="width:70px" value="${n.breakMins||0}" data-need="${i}:breakMins"><span class="mut">min</span></div>
+  <div class="grid3" style="margin-top:8px"><select class="inp" data-need="${i}:group"><option value="">Anyone</option>${opts(S.groups,n.group)}</select><select class="inp" data-need="${i}:activity"><option value="">No activity</option>${opts(activeActs(),n.activity)}</select><select class="inp" data-need="${i}:location"><option value="">No location</option>${opts(S.locations.filter(l=>!l.archived),n.location)}</select></div>
+  <label class="row small" style="gap:6px;margin-top:8px"><input type="checkbox" data-need="${i}:holidays" ${n.holidays?'checked':''}> Also needed on bank holidays</label></div>`).join('')}
+ <button class="btn ghost sm" data-act="needAdd">${ic('plus',14)} Add cover rule</button>
+ <div class="nav-sec" style="padding:18px 0 0">Rota rules</div>
+ <div class="setrow"><div><b>Max working days per week</b></div><input class="inp" type="number" min="1" max="7" style="max-width:80px" value="${D.st.maxDays}" data-rst="maxDays"></div>
+ <div class="setrow"><div><b>Minimum rest between shifts</b><div class="d">Hours off between one shift ending and the next starting.</div></div><input class="inp" type="number" min="0" max="24" style="max-width:80px" value="${D.st.minRest}" data-rst="minRest"></div>
+ <div class="setrow"><div><b>Avoid overtime</b><div class="d">Don't go over contracted hours. If nobody else can cover, the shift is left open.</div></div><label class="toggle"><input type="checkbox" ${D.st.avoidOT?'checked':''} data-rst="avoidOT"><span></span></label></div>
+ <div class="setrow"><div><b>Share weekend and late shifts fairly</b><div class="d">Looks back 4 weeks.</div></div><label class="toggle"><input type="checkbox" ${D.st.fairWeekends?'checked':''} data-rst="fairWeekends"><span></span></label></div>`;
+ if(first)openDrawer('Cover rules',body,`<button class="btn" data-act="closeDrawer">Cancel</button><button class="btn pri" data-act="needsSave">Save</button>`);else $('#drawer .dr-body').innerHTML=body}
+A.needAdd=()=>{D.needs.push({id:uid(),name:'',days:[1,2,3,4,5],start:'09:00',end:'17:00',breakMins:30,count:1,group:'',activity:'',location:'',holidays:false});renderRules();$('#drawer .dr-body').scrollTop=1e6};
+A.needDel=el=>{D.needs.splice(+el.dataset.i,1);renderRules()};
+A.needDay=el=>{const n=D.needs[+el.dataset.i],d=+el.dataset.d;n.days=n.days.map(Number);n.days=n.days.includes(d)?n.days.filter(x=>x!==d):[...n.days,d];el.classList.toggle('on')};
+A.needsSave=()=>{for(const n of D.needs){if(!n.name.trim())return toast('Name each cover rule','bad');if(!n.days.length)return toast(`“${n.name}” needs at least one day`,'bad');if(n.start===n.end)return toast(`“${n.name}”: start and end are the same`,'bad');n.count=Math.max(1,+n.count||1);n.breakMins=+n.breakMins||0}
+ S.rota.needs=D.needs;S.rota.settings={maxDays:Math.min(7,Math.max(1,+D.st.maxDays||5)),minRest:Math.max(0,+D.st.minRest||0),avoidOT:!!D.st.avoidOT,fairWeekends:!!D.st.fairWeekends};save();closeDrawer();render();toast('Cover rules saved')};
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset.need&&D&&D.kind==='needs'){const[i,k]=el.dataset.need.split(':');D.needs[+i][k]=el.type==='checkbox'?el.checked:el.value}if(el.dataset.rst&&D&&D.kind==='needs'){D.st[el.dataset.rst]=el.type==='checkbox'?el.checked:+el.value}});
+document.addEventListener('input',e=>{const el=e.target;if(el.dataset.need&&D&&D.kind==='needs'&&el.type!=='checkbox'){const[i,k]=el.dataset.need.split(':');D.needs[+i][k]=el.value}});
+/* member availability in the member editor */
+const _memberDrawerR=memberDrawer;memberDrawer=function(m){_memberDrawerR(m);const body=$('#drawer .dr-body');if(!body)return;D.unavail=[...(m.unavail||[])];const x=document.createElement('div');
+ x.innerHTML=`<div class="nav-sec" style="padding:16px 0 0">Rota preferences</div>${fld('Unavailable on',msel('unavail',[1,2,3,4,5,6,0].map(d=>({id:String(d),name:DN[d]})),D.unavail,{none:'Available every day'}))}${fld('Prefers',`<select class="inp" data-dr="shiftPref"><option value="" ${!D.shiftPref?'selected':''}>No preference</option><option value="early" ${D.shiftPref==='early'?'selected':''}>Early shifts</option><option value="late" ${D.shiftPref==='late'?'selected':''}>Late shifts</option></select>`)}`;body.appendChild(x)};
+
+/* ---------- show the rota elsewhere ---------- */
+const _tsMemberView=VIEWS.tsMember;VIEWS.tsMember=()=>{let h=_tsMemberView();const sh=rotaShiftsFor(U.tsMid,U.tsDay||today()).filter(s=>s.published);if(sh.length)h=h.replace('<div class="ev-list">',`<div class="ev-list"><div class="info-banner">${ic('rota',16)} Rota: ${sh.map(s=>`<b>${fmtT(atHM(s.date,s.start))}–${fmtT(atHM(s.date,s.end))}</b> ${esc(act(s.activity)?.name||'')}${s.location&&locn(s.location)?` at ${esc(locn(s.location).name)}`:''}`).join(', ')}${isLate(U.tsMid,U.tsDay)?' <span class="chip amber">Late</span>':''}</div>`);return h};
+const _dashR=VIEWS.dashboard;VIEWS.dashboard=()=>{let h=_dashR();const T=today();const ids=new Set(dashMembers().map(m=>m.id));const sh=S.rota.shifts.filter(s=>s.date===T&&s.published&&ids.has(s.member)).sort((a,b)=>a.start.localeCompare(b.start));
+ const card=`<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>On the rota today</b><button class="btn ghost sm" data-act="go" data-v="rota">Open rota</button></div>${sh.length?sh.map(s=>{const m=mem(s.member);const st=status(m.id),fi=firstIn(m.id,T),late=isLate(m.id,T),due=atHM(T,s.start);return`<div class="mrow" style="padding:8px 0">${avatar(m,28)}<div style="flex:1"><b>${esc(m.name)}</b> <span class="small mut">${fmtT(due)}–${fmtT(atHM(T,s.end))} · ${esc(act(s.activity)?.name||'')}</span></div>${st!=='out'?`<span class="chip ${late?'amber':'green'}">${late?'Late':'In'} ${fmtT(fi)}</span>`:fi?'<span class="chip">Finished</span>':Date.now()>due+(+S.settings.graceMins||0)*6e4?'<span class="chip red">Not in yet</span>':'<span class="chip">Due</span>'}</div>`}).join(''):'<div class="mut small" style="padding:8px 0">No published shifts today.</div>'}</div>`;
+ return h.replace('<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>Tracked hours</b>',card+'<div class="card pad" style="margin-bottom:14px"><div class="row between"><b>Tracked hours</b>')};
+const _aiR=aiAnswer;aiAnswer=function(raw){const q=raw.toLowerCase();if(/rota|shift|scheduled to|on schedule|working tomorrow|who works/.test(q)){const d=/tomorrow/.test(q)?addDays(today(),1):/yesterday/.test(q)?addDays(today(),-1):today();const lbl=d===today()?'today':d===addDays(today(),1)?'tomorrow':fmtDate(d);
+ const sh=S.rota.shifts.filter(s=>s.date===d&&s.published).sort((a,b)=>a.start.localeCompare(b.start));const open=sh.filter(s=>!s.member);if(!sh.length)return`No published shifts ${lbl}.`;
+ return`${sh.length-open.length} people on the rota ${lbl}${open.length?`, and <b>${open.length} open shift${open.length>1?'s':''}</b> still to fill`:''}:${tbl(['Member','Shift','Activity','Location'],sh.map(s=>[s.member?esc(mem(s.member)?.name):'<b>Open shift</b>',`${s.start}–${s.end}`,esc(act(s.activity)?.name||''),esc(locn(s.location)?.name||'')]))}`}return _aiR(raw)};
+
+A.print=()=>window.print();
 
 /* ================= events ================= */
 document.addEventListener('click',e=>{document.querySelectorAll('details.msel[open]').forEach(d=>{if(!d.contains(e.target))d.removeAttribute('open')});const el=e.target.closest('[data-act]');if(!el)return;if(el.tagName==='A')e.preventDefault();if(el.tagName==='BUTTON'&&el.closest('form'))e.preventDefault();const f=A[el.dataset.act];if(f)f(el,e)});
