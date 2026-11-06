@@ -675,6 +675,9 @@ body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
  .auth2-fbrand{gap:12px}
  .auth2-fbrand .wordmark2{font-size:17px;letter-spacing:.14em}
 }
+/* keep the headline clear of the phone picture */
+.auth2-art h2{max-width:320px}
+@media (max-width:1180px){.auth2-art h2{max-width:250px}}
 </style>
 </head>
 <body>
@@ -2194,7 +2197,7 @@ let LG={id:'',show:false,err:'',keep:true};
 function renderLogin(){const el=$('#login');const now=new Date();const t=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const d=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
  el.innerHTML=`<div class="auth2"><div class="auth2-art" aria-hidden="true">
   <div class="auth2-brand"><span class="logo auth2-mark"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
-  <h2>Every shift, on time — from your phone.</h2>
+  <h2>Every clock-in, every break — in one place.</h2>
   <div class="ph"><div class="ph-scr"><div class="ph-notch"></div><div class="ph-d">${esc(d)}</div><div class="ph-t">${t}</div><div class="ph-pill">Working</div>
    <div class="ph-b ph-brk">Start break</div><div class="ph-b ph-out">Clock out</div>
    <div class="ph-card"><b>Today's tasks</b><div><i></i>Open till and count float</div><div><i class="on"></i>Check stock delivery</div></div></div></div>
