@@ -197,8 +197,24 @@
     const w = document.createElement('span'); w.className = 'top-pick'; w.innerHTML = h;
     const sp = top.querySelector('.sp'); if (sp) sp.after(w); else top.appendChild(w);
   };
+  // short names under the icons in the narrow iPad sidebar (same as Proview Bookings)
+  const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Locations', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', locations: 'Sites', projects: 'Projects', organization: 'Company',
+    sHome: 'Home', sClock: 'Clock', sTasks: 'Tasks', sSheets: 'Timesheets', sP45: 'Payslips' };
+  const _renderNav3 = renderNav;
+  renderNav = function () {
+    _renderNav3.apply(this, arguments);
+    document.querySelectorAll('.side .nav button').forEach((b) => {
+      if (b.querySelector('.slbl')) return;
+      const v = b.dataset.v, l = b.querySelector('.lbl')?.textContent || '';
+      const t = (v && SHORT[v]) || (b.classList.contains('nav-group') ? 'Settings' : l.split(/\s+/)[0]);
+      if (t) b.insertAdjacentHTML('beforeend', `<span class="slbl">${esc(t)}</span>`);
+    });
+    document.querySelectorAll('.side-foot button[data-act=signOut]').forEach((b) => { if (!b.querySelector('.slbl')) b.insertAdjacentHTML('beforeend', '<span class="slbl">Sign out</span>'); });
+  };
   const css3 = document.createElement('style');
-  css3.textContent = `.client-pick{margin:0 14px 12px}.client-pick:empty{display:none}
+  css3.textContent = `.slbl{display:none}
+@media (min-width:701px) and (max-width:900px){.side .nav button{flex-direction:column;gap:4px!important;padding:8px 2px 7px!important;justify-content:center}.side .slbl{display:block;font-size:10.5px;line-height:1.15;font-weight:500;text-align:center;white-space:nowrap;letter-spacing:-.1px}.side .nav button .cnt{display:none}.side-foot button{flex-direction:column;gap:3px;padding:7px 2px!important}.side-foot .slbl{font-size:10px}.side-foot button[data-act=collapse]{display:none!important}}
+.client-pick{margin:0 14px 12px}.client-pick:empty{display:none}
 .client-pick select,.top-pick select{width:100%;background:#23232a;color:#fff;border:1px solid #33333c;border-radius:9px;padding:9px 30px 9px 11px;font:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;text-overflow:ellipsis}
 .client-pick select:hover{border-color:#4a4a55}.client-pick select:focus-visible,.top-pick select:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
 .client-pick select option{background:#23232a;color:#fff}
@@ -206,7 +222,7 @@
 .app.collapsed .client-pick{display:none}.top-pick{display:none}
 @media (min-width:701px) and (max-width:900px){.client-pick{display:none}}
 @media (max-width:900px){.top-pick{display:block;max-width:46%;min-width:0;margin:0 6px}.top-pick select{padding:7px 28px 7px 10px;font-size:15px;background-color:var(--card);color:var(--ink);border:1px solid var(--line);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}.top-pick select option{background:var(--card);color:var(--ink)}}
-@media (max-width:700px){.top:has(.top-pick){flex-wrap:wrap!important;row-gap:8px!important;height:auto}.top .top-pick{order:20;flex:1 0 100%;max-width:none;margin:0 0 2px}}
+@media (max-width:700px){.top .top-pick{display:none!important}.app .side .client-pick{display:block!important}}
 @media (hover:none) and (pointer:coarse){.client-pick select,.top-pick select{font-size:16px}}`;
   document.head.appendChild(css3);
 
