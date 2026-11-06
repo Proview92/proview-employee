@@ -684,6 +684,22 @@ body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
 /* keep the headline clear of the phone picture */
 .auth2-art h2{max-width:320px}
 @media (max-width:1180px){.auth2-art h2{max-width:250px}}
+@media (max-width:700px){
+ .side{width:280px!important;max-width:86vw}
+ .top{padding:8px 10px!important}
+ .side .client-pick select{font-size:14px!important}
+ .app .side .side-foot{display:flex!important;flex-direction:row!important;padding:0 10px 14px!important}.app .side .side-foot [data-act=collapse]{display:none!important}.app .side .side-foot .lbl{display:inline!important}.app .side .side-foot .slbl{display:none!important}
+}
+@media (max-width:700px) and (hover:none) and (pointer:coarse){.side .client-pick select{font-size:16px!important}}
+.side-foot{align-items:center}.side-foot button[data-act=collapse],.side-foot button[data-act=signOut]{height:29px;box-sizing:border-box;border:0!important;line-height:17px}
+#venueCard{margin:10px 10px 8px!important}
+/* group header looks like the section labels in Bookings and Signage */
+.side .nav .nav-div{display:none}
+.side .nav .nav-group{font-size:11px!important;font-weight:400!important;text-transform:uppercase;letter-spacing:.08em;color:#6e6e78!important;padding:14px 10px 6px!important;gap:6px!important;background:none!important;line-height:15px;min-height:0}
+.side .nav .nav-group .lbl{font-size:11px!important;font-weight:400}
+.side .nav .nav-group svg{order:2;width:12px;height:12px;margin-left:2px}
+.side .nav .nav-group:hover{color:#c9c9d1!important}
+@media (min-width:701px) and (max-width:900px){.side .nav .nav-group{padding:8px 2px 7px!important;color:#c9c9d1!important}.side .nav .nav-group svg{order:0;width:19px;height:19px;margin:0}.side .nav .nav-group .slbl{text-transform:none;letter-spacing:-.1px}}
 </style>
 <script src="config.js"></script>
 </head>

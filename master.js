@@ -203,6 +203,14 @@
   const _renderNav3 = renderNav;
   renderNav = function () {
     _renderNav3.apply(this, arguments);
+    // group headers, same style as Proview Bookings (Service / Grow / Team / Manage)
+    const nv = document.querySelector('.side .nav');
+    if (nv && !nv.querySelector('.nav-sec')) {
+      const firstOf = (keys) => keys.map((k) => nv.querySelector(`:scope > button[data-v="${k}"]`)).find(Boolean);
+      [['Work', ['getstarted', 'dashboard', 'timesheets', 'rota', 'tasks', 'sHome', 'sClock']], ['Team', ['live', 'timeoff']], ['Insights', ['reports', 'invoices', 'ai']]].forEach(([t, keys]) => {
+        const b = firstOf(keys); if (b) b.insertAdjacentHTML('beforebegin', `<div class="nav-sec">${t}</div>`);
+      });
+    }
     document.querySelectorAll('.side .nav button').forEach((b) => {
       if (b.querySelector('.slbl')) return;
       const v = b.dataset.v, l = b.querySelector('.lbl')?.textContent || '';
