@@ -592,6 +592,14 @@ body.staff .collapse-btn{display:inline-flex}
  body.staff .top-av{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:0;color:#fff;font-weight:700;font-size:13px;flex:none;cursor:pointer}
  body.staff #top h2{margin-left:4px;flex:1;min-width:0;max-width:none}
 }
+/* bottom menu: brand blue */
+@media (max-width:700px){
+ body.staff:not(.signed-out) #tabbar{background:var(--pri);border-top:0;box-shadow:0 -4px 16px rgba(30,60,140,.18)}
+ #tabbar button{color:rgba(255,255,255,.72)}
+ #tabbar button.on{color:#fff}
+ #tabbar button.on .tb-ic{background:rgba(255,255,255,.2)}
+ #tabbar .tb-dot{box-shadow:0 0 0 2px var(--pri)}
+}
 </style>
 </head>
 <body>
