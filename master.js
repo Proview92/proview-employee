@@ -207,7 +207,7 @@
     const vc = document.getElementById('venueCard');
     if (vc && O.ready) {
       const m = typeof me === 'function' ? me() : null;
-      const nm = (m && m.name) || ((O.user && O.user.email) || '').split('@')[0] || 'Me';
+      const nm = (e=>String(e||'').split('@')[0].split(/[._-]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' '))(O.user && O.user.email) || (m && m.name) || 'Me';
       const rl = O.asMaster ? 'Proview admin' : ((m && m.role) || O.role || '');
       vc.className = 'venue side-me';
       vc.innerHTML = `<span class="side-av">${esc(initials(nm))}</span><span class="side-me-t"><b>${esc(nm)}</b><span>${esc([rl, S.org && S.org.name].filter(Boolean).join(' · '))}</span></span>${ic('right', 16)}`;
@@ -225,6 +225,7 @@
       const v = b.dataset.v, l = b.querySelector('.lbl')?.textContent || '';
       const t = (v && SHORT[v]) || (b.classList.contains('nav-group') ? 'Settings' : l.split(/\s+/)[0]);
       if (t) b.insertAdjacentHTML('beforeend', `<span class="slbl">${esc(t)}</span>`);
+      if (b.classList.contains('nav-group') && !b.querySelector('.rail-ic')) b.insertAdjacentHTML('afterbegin', ic('cog', 18).replace('<svg', '<svg class="rail-ic"'));
     });
     document.querySelectorAll('.side-foot button[data-act=signOut]').forEach((b) => { if (!b.querySelector('.slbl')) b.insertAdjacentHTML('beforeend', '<span class="slbl">Sign out</span>'); });
   };
