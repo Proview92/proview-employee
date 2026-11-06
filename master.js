@@ -129,7 +129,7 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     return `<div class="ms-row"><div class="grow"><div class="nm">${esc(o.name)} ${o.suspended ? '<span class="chip red">On hold</span>' : ''} ${o.self_signup ? '<span class="chip">Signed up online</span>' : ''}</div>
       <div class="tiny">${[o.contact_email, plural(st.length, 'staff member'), plural(logins, 'sign-in'), 'since ' + fmt(o.created_at), o.last_active ? 'last active ' + fmt(o.last_active) : null, o.notes ? o.notes.slice(0, 60) : null].filter(Boolean).map(esc).join(' · ')}</div></div>
       <span class="chip ${ok === st.length && st.length ? 'green' : ok ? 'amber' : 'red'}">${ok}/${st.length} licensed</span>
-      <div class="ms-acts"><button class="btn sm" data-act="msOrgStaff" data-o="${esc(o.id)}">Licences</button><button class="btn sm ghost" data-act="msEditOrg" data-o="${esc(o.id)}" title="Edit" aria-label="Edit ${esc(o.name)}">${ic('edit', 15)}</button></div></div>`;
+      <div class="ms-acts"><button class="btn sm pri" data-act="msOpenOrg" data-o="${esc(o.id)}" title="Open this business with full access">Open</button><button class="btn sm" data-act="msOrgStaff" data-o="${esc(o.id)}">Licences</button><button class="btn sm ghost" data-act="msEditOrg" data-o="${esc(o.id)}" title="Edit" aria-label="Edit ${esc(o.name)}">${ic('edit', 15)}</button></div></div>`;
   }).join('') : (M.loading ? '' : `<div class="ms-empty"><b>No businesses yet</b><br>Add one, or they appear here when a customer signs up online.<br><br><button class="btn pri" data-act="msNewOrg">${ic('plus', 15)} New business</button></div>`)}</div>
  <div class="card ms-card"><div class="ms-ch"><h2>All staff</h2><div class="ms-tools"><input class="inp" id="msQ" placeholder="Search name, email or business" value="${esc(M.q)}" autocomplete="off">
    <select class="inp" style="width:auto" data-act-change="msFilter">${[['all', 'Everyone'], ['paid', 'Paid'], ['trial', 'On trial'], ['locked', 'Without access']].map(([k, l]) => `<option value="${k}" ${M.filter === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
@@ -154,6 +154,14 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     if (mine.length === 1) return go(mine[0]);
     A.msGo = (el) => go(mine.find((o) => o.org_id === el.dataset.o));
     openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Open a company</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>${mine.map((o) => `<button class="btn" style="width:100%;justify-content:flex-start;margin-top:10px" data-act="msGo" data-o="${esc(o.org_id)}">${ic('building', 15)} ${esc(o.org_name)} <span class="mut small" style="margin-left:auto">${esc(o.role)}</span></button>`).join('')}</div>`, 420);
+  };
+  // open any business as the Proview master admin (Owner rights, not one of their staff)
+  A.msOpenOrg = (el) => {
+    const o = M.data.find((x) => x.id === el.dataset.o); if (!o) return;
+    const mine = (O.orgs || []).find((x) => x.org_id === o.id && !x.locked);
+    O.lsSet('pe-master-mode:' + O.user.id, false);
+    document.body.classList.remove('master-on'); host.innerHTML = '';
+    O.enterOrg(mine || { org_id: o.id, org_name: o.name, member_id: 'proview-master', role: 'Owner', as_master: true });
   };
   A.msBackToMaster = () => { O.lsSet('pe-master-mode:' + O.user.id, true); location.reload(); };
 
@@ -183,9 +191,35 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     const people = S.members.filter((m) => !m.archived && !m.placeholder);
     const soon = people.filter((m) => ['expiring', 'grace'].includes(licState(myLic(m.id)).state));
     const gone = people.filter((m) => ['none', 'expired'].includes(licState(myLic(m.id)).state));
-    if (!soon.length && !gone.length) return html;
+    const buyBtn = O.asMaster ? '' : `<button class="btn sm pri" data-act="peBuy" style="margin-left:auto;flex:none">Buy / renew online</button>`;
+    if (!soon.length && !gone.length) return O.asMaster ? html : `<div class="card pad lic-banner" role="status" style="align-items:center">${ic('shield', 18)}<div class="small">${plural(people.length, 'staff licence')} active.</div>${buyBtn}</div>` + html;
     const names = (l) => l.slice(0, 4).map((m) => esc(m.name.split(' ')[0])).join(', ') + (l.length > 4 ? ` and ${l.length - 4} more` : '');
-    return `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}Contact Proview to renew: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a></div></div></div>` + html;
+    return `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}Buy or renew online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a></div></div>${buyBtn}</div>` + html;
+  };
+
+  // owners and admins: buy or renew staff licences online (prices and Stripe links come from the Proview licence portal)
+  const BUY_ORDER = ['m1', 'm3', 'm6', 'm12', 'm24', 'm36', 'lifetime'];
+  const money = (p) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: (p.currency || 'gbp').toUpperCase() }).format(p.amount / 100);
+  A.peBuy = async () => {
+    let plans = {};
+    try { const { data } = await O.sb.rpc('licence_buy_plans'); plans = data || {}; } catch (e) {}
+    const list = Object.entries(plans).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
+    if (!list.length) return toast('Online payment isn’t available yet. Contact Proview: altun@proviewtech.co.uk', 'bad');
+    const people = S.members.filter((m) => !m.archived && !m.placeholder && !m._virtual)
+      .sort((a, b) => (licOk(myLic(a.id)) - licOk(myLic(b.id))) || String(a.name).localeCompare(b.name));
+    const def = (list.find(([k]) => k === 'm12') || list[0])[0];
+    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Buy or renew licences</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>
+      <p class="small mut" style="margin:6px 0 10px">Each person needs their own licence. Choose a plan, then press Pay next to the person. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
+      <label class="f">Plan</label><select class="inp" id="peBuyPlan">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select>
+      <div style="margin:12px -24px 0;border-top:1px solid var(--line);max-height:50vh;overflow:auto">${people.map((m) => `<div class="ms-row"><div class="grow"><div class="nm">${esc(m.name || 'Unnamed')}</div><div class="tiny">${esc(m.role || '')}${m.email ? ' · ' + esc(m.email) : ''}</div></div>${licBadge(myLic(m.id) || {})}<button class="btn sm pri" data-act="peBuyGo" data-m="${esc(m.id)}">Pay</button></div>`).join('') || '<div class="ms-empty">No staff yet.</div>'}</div></div>`, 560);
+    A.peBuyGo = (el) => {
+      const k = $('#peBuyPlan').value, p = plans[k]; if (!p) return;
+      const u = new URL(p.link);
+      u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__${O.org}__${el.dataset.m}__${k}`);
+      if (O.user?.email) u.searchParams.set('prefilled_email', O.user.email);
+      window.open(u.toString(), '_blank', 'noopener');
+      toast('Finish paying in the Stripe tab. The licence updates within about 5 minutes.');
+    };
   };
 
   // staff home: a heads-up when their own access is about to end

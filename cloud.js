@@ -84,6 +84,7 @@
     for (const [coll, get, , mf] of ARRAYS) (get(s) || []).forEach((x) => add(coll, x.id, mf ? (x[mf] ?? '') : null, x));
     for (const [coll, get] of OBJECTS) { const v = get(s); if (v) add(coll, coll, null, v); }
     (s.members || []).forEach((m) => {
+      if (m._virtual) return;
       const pub = { ...m }, sec = {};
       SECRET_FIELDS.forEach((f) => { if (f in pub) { sec[f] = pub[f]; delete pub[f]; } });
       DROP_FIELDS.forEach((f) => delete pub[f]);
@@ -91,7 +92,7 @@
       if (Object.keys(sec).length) add('secrets', m.id, m.id, sec);
     });
     Object.entries(s.approvals || {}).forEach(([k, v]) => add('approvals', k, k.split('|')[0], v));
-    (s.ai || []).forEach((a) => add('ai', a.r + ':' + a.at, O.member, a));
+    if (!O.asMaster) (s.ai || []).forEach((a) => add('ai', a.r + ':' + a.at, O.member, a));
     return out;
   }
 
@@ -329,7 +330,7 @@
     lsSet(cacheKey(), { since: O.since, org: O.org, orgName: O.orgName, member: O.member, role: O.role, rows: [...O.rows.values()] });
   }
   async function openOrg(org) {
-    O.org = org.org_id; O.orgName = org.org_name; O.member = org.member_id; O.role = org.role;
+    O.org = org.org_id; O.orgName = org.org_name; O.member = org.member_id; O.role = org.role; O.asMaster = !!org.as_master;
     lsSet('pe-last-org:' + O.user.id, O.org);
     let rows;
     try {
@@ -349,7 +350,9 @@
       // re-apply changes I made offline that haven't been sent yet
       O.queue.forEach((r) => applyToS(r));
     } finally { O.applying = false; }
-    if (!S.members.some((m) => m.id === O.member)) S.members.push({ id: O.member, name: O.user.user_metadata?.name || O.user.email, role: O.role, email: O.user.email, group: '', archived: false, color: '#4a6cd0' });
+    // the Proview master admin opens businesses as a screen-only Owner (never saved to their staff list)
+    if (O.asMaster && !S.members.some((m) => m.id === O.member)) S.members.push({ id: O.member, name: 'Proview (master admin)', role: 'Owner', email: O.user.email, group: '', archived: false, color: '#5a5fbb', _virtual: true });
+    else if (!S.members.some((m) => m.id === O.member)) S.members.push({ id: O.member, name: O.user.user_metadata?.name || O.user.email, role: O.role, email: O.user.email, group: '', archived: false, color: '#4a6cd0' });
     if (!S.org.name || S.org.name === 'Proview Tech') S.org.name = O.orgName || S.org.name;
     O.ready = true;
     rememberEmails();
