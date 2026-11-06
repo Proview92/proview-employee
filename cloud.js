@@ -373,19 +373,52 @@
       if (c) orgs = [{ org_id: c.org, org_name: c.orgName, member_id: c.member, role: c.role }];
       else { setLoading(''); LG.err = friendly(e); renderLogin(); return; }
     }
+    // master admin (Proview): goes to the master page unless they chose one of their own companies last time
+    O.orgs = orgs;
+    O.master = orgs.some((o) => o.is_master);
+    if (!O.master) { try { const { data } = await O.sb.rpc('pe_am_master'); O.master = !!data; } catch (e) {} }
+    const usable = orgs.filter((o) => !o.locked);
+    if (O.master && window.PE_MASTER && (!usable.length || lsGet('pe-master-mode:' + user.id) !== false)) {
+      setLoading(''); window.PE_MASTER.open(); return;
+    }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
       if (meta.company) { await createCompany(meta.name || user.email, meta.company); return; }
       setLoading(''); showNoCompany(); return;
     }
+    if (!usable.length) { setLoading(''); showLocked(orgs[0]); return; }
     const last = lsGet('pe-last-org:' + user.id);
-    const org = orgs.find((o) => o.org_id === last) || orgs[0];
+    await enterOrg(usable.find((o) => o.org_id === last) || usable[0]);
+  }
+  async function enterOrg(org) {
+    setLoading('Opening your company…');
     try { await openOrg(org); }
     catch (e) { setLoading(''); LG.err = friendly(e); renderLogin(); return; }
+    O.myLicence = { type: org.license_type, expires: org.license_expires_at };
+    loadLicences().catch(() => {});
     setLoading('');
     LG = { id: '', show: false, err: '', keep: true };
-    U.view = O.role === 'Member' ? 'sHome' : (U.view && U.view !== 'sHome' ? U.view : 'dashboard');
+    U.view = O.role === 'Member' ? 'sHome' : (U.view && U.view !== 'sHome' && U.view !== 'master' ? U.view : 'dashboard');
     render();
+  }
+  O.enterOrg = enterOrg;
+  O.lsSet = lsSet; O.lsGet = lsGet; O.friendly = friendly;
+  // licences of everyone in my company (owners/admins see all, others see their own)
+  async function loadLicences() {
+    O.licences = new Map();
+    const { data, error } = await O.sb.from('pe_licences').select('member_id,license_type,expires_at,starts_at').eq('org_id', O.org);
+    if (error) throw error;
+    (data || []).forEach((l) => O.licences.set(l.member_id, { type: l.license_type, expires: l.expires_at }));
+    if (O.ready) render();
+  }
+  O.loadLicences = loadLicences;
+  function showLocked(org) {
+    const own = org.role === 'Owner' || org.role === 'Admin';
+    const why = org.suspended
+      ? `<b>${esc(org.org_name)}</b>’s Proview Employee account is on hold.`
+      : `Your Proview Employee licence at <b>${esc(org.org_name)}</b> has ended${org.license_expires_at ? ' (' + new Date(org.license_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ')' : ''}.`;
+    const what = own ? 'To carry on, contact Proview to renew: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>.' : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.';
+    openModal(`<div class="pad"><b style="font-size:17px">${org.suspended ? 'Account on hold' : 'Licence ended'}</b><p class="mut" style="margin:8px 0 0">${why} ${what}</p><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-act="signOut">Sign out</button></div></div>`, 440);
   }
 
   // A new company, with me as the owner. Optionally brings the company already in this browser.
