@@ -203,6 +203,15 @@
   const _renderNav3 = renderNav;
   renderNav = function () {
     _renderNav3.apply(this, arguments);
+    // profile box: same design as Proview Bookings and Signage (avatar, name, role · business, chevron)
+    const vc = document.getElementById('venueCard');
+    if (vc && O.ready) {
+      const m = typeof me === 'function' ? me() : null;
+      const nm = (m && m.name) || ((O.user && O.user.email) || '').split('@')[0] || 'Me';
+      const rl = O.asMaster ? 'Proview admin' : ((m && m.role) || O.role || '');
+      vc.className = 'venue side-me';
+      vc.innerHTML = `<span class="side-av">${esc(initials(nm))}</span><span class="side-me-t"><b>${esc(nm)}</b><span>${esc([rl, S.org && S.org.name].filter(Boolean).join(' · '))}</span></span>${ic('right', 16)}`;
+    }
     // group headers, same style as Proview Bookings (Service / Grow / Team / Manage)
     const nv = document.querySelector('.side .nav');
     if (nv && !nv.querySelector('.nav-sec')) {
