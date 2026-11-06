@@ -600,6 +600,68 @@ body.staff .collapse-btn{display:inline-flex}
  #tabbar button.on .tb-ic{background:rgba(255,255,255,.2)}
  #tabbar .tb-dot{box-shadow:0 0 0 2px var(--pri)}
 }
+/* ===== sign-in: same layout as app.proviewsignage.co.uk (classic look) ===== */
+body.signed-out #login{background:#f4f3ef}
+.auth2{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;color:#17171c}
+.auth2-art{background:#141418;color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth2-brand{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+.auth2-mark{width:36px!important;height:26px!important;margin:0!important}
+.wordmark2{letter-spacing:.04em;font-size:15px;white-space:nowrap}
+.wordmark2 b{font-weight:500}
+.wordmark2 span{font-weight:500;background:linear-gradient(90deg,#62b0ec 0%,#8b88dc 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.auth2-art h2{font-size:40px;line-height:1.05;max-width:440px;letter-spacing:-.03em;font-weight:700;margin:0;position:relative;z-index:1}
+.auth2-sub{color:#9a9aa4;max-width:300px;font-size:14px;position:relative;z-index:1}
+/* tilted phone showing the time clock (in place of the TV) */
+.ph{position:absolute;right:56px;bottom:46px;width:212px;aspect-ratio:9/18.5;border-radius:34px;background:#26262e;padding:9px;box-shadow:0 40px 80px rgba(0,0,0,.45);transform:rotate(-6deg)}
+.ph-scr{height:100%;border-radius:26px;background:linear-gradient(160deg,#62b0ec,#6d6fb2 55%,#3f86d6);padding:30px 16px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;overflow:hidden;color:#fff}
+.ph-notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:70px;height:18px;border-radius:10px;background:#26262e}
+.ph-d{font-size:11.5px;opacity:.85}
+.ph-t{font-size:42px;font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.ph-pill{font-size:11px;font-weight:700;background:rgba(255,255,255,.22);padding:3px 10px;border-radius:20px;margin-bottom:4px}
+.ph-pill:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#4ade80;margin-right:5px;vertical-align:1px}
+.ph-b{width:100%;text-align:center;font-size:12.5px;font-weight:700;padding:9px;border-radius:11px}
+.ph-brk{background:#fff;color:#d48a00}.ph-out{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35)}
+.ph-card{margin-top:auto;width:100%;background:#fff;color:#17171c;border-radius:12px;padding:10px 11px;font-size:11px;display:flex;flex-direction:column;gap:6px}
+.ph-card b{font-size:11.5px}.ph-card div{display:flex;align-items:center;gap:7px;color:#55555f}
+.ph-card i{width:12px;height:12px;border-radius:4px;border:1.5px solid #c9c7c0;flex:none}.ph-card i.on{background:#12a150;border-color:#12a150}
+.ph-toast{position:absolute;right:228px;bottom:190px;display:flex;gap:10px;align-items:center;background:#fff;color:#17171c;border-radius:14px;padding:11px 14px;box-shadow:0 20px 50px rgba(0,0,0,.4);transform:rotate(3deg);font-size:12px}
+.ph-toast b{display:block;font-size:13px}.ph-toast span:not(.ph-ok){color:#8b8b95}
+.ph-ok{width:26px;height:26px;border-radius:50%;background:#12a150;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.ph-sheet{position:absolute;right:-34px;bottom:400px;width:170px;background:#1f1f26;border:1px solid #33333c;border-radius:14px;padding:12px 14px;box-shadow:0 24px 50px rgba(0,0,0,.4);transform:rotate(5deg);font-size:11px;color:#9a9aa4}
+.ph-sheet b{display:block;color:#fff;font-size:20px;margin:2px 0 8px}
+.ph-bars{display:flex;gap:5px;align-items:flex-end;height:34px}.ph-bars i{flex:1;border-radius:3px;background:linear-gradient(180deg,#62b0ec,#8b88dc);min-height:3px}
+/* form side */
+.auth2-form{display:grid;place-items:center;padding:32px 20px;background:#f4f3ef}
+.auth2-form>div{width:min(440px,100%)}
+.auth2-form form{background:#fff;border:1px solid #e4e2dc;border-radius:20px;padding:34px 32px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(20,20,30,.04),0 18px 50px -18px rgba(20,20,30,.18)}
+.auth2-fbrand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.auth2-logo{width:94px!important;height:64px!important;margin:0!important;flex:none}
+.auth2-fbrand .wordmark2{font-size:20px;letter-spacing:.14em;color:#17171c}
+.auth2-form h1{font-size:26px;font-weight:750;letter-spacing:-.015em;margin:0;color:#17171c}
+.auth2-mut{color:#55555f;margin:0;font-size:14.5px}
+.field2{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#55555f}
+.field2 input{height:38px;padding:9px 11px;border:1px solid #e4e2dc;border-radius:9px;background:#fff;font:inherit;font-size:15px;font-weight:400;color:#17171c;outline:none;width:100%;box-sizing:border-box}
+.field2 input:focus{border-color:#4a6cd0;box-shadow:0 0 0 3px #edf2fd}
+.pw2{position:relative}.pw2 input{padding-right:44px}
+.pw2-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:34px;border:0;background:transparent;color:#8b8b95;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.pw2-eye:hover{color:#17171c;background:rgba(0,0,0,.05)}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 15px;border-radius:10px;border:1px solid #e4e2dc;background:#fff;color:#17171c;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.pri2{background:linear-gradient(135deg,#2f84d4 0%,#5a5fbb 100%);border-color:transparent;color:#fff}.pri2:hover{filter:brightness(.95)}
+.ghost2{background:transparent;border-color:transparent;height:32px;padding:0 11px;font-size:13px;border-radius:8px}.ghost2:hover{background:rgba(0,0,0,.05)}
+.auth2-row{display:flex;justify-content:space-between;align-items:center}
+.auth2-demo{text-align:center;font-size:12.5px;color:#8b8b95;margin-top:16px;line-height:1.8}
+body.signed-out.dark #login,body.signed-out.dark .auth2-form{background:#f4f3ef}
+@media (max-width:1180px){.ph-sheet,.ph-toast{display:none}.auth2-art h2{font-size:32px;max-width:300px}.ph{width:190px;right:36px}}
+@media (max-width:820px){
+ .auth2{grid-template-columns:1fr}.auth2-art{display:none}
+ .auth2-form{padding:24px 14px;align-content:start;min-height:100vh}
+ .auth2-form form{padding:26px 20px;border-radius:18px;margin-top:4vh}
+ .field2 input{font-size:16px!important}
+ .auth2-demo .lg-link{padding:6px 2px;display:inline-block}
+ .auth2-logo{width:66px!important;height:45px!important}
+ .auth2-fbrand{gap:10px}
+ .auth2-fbrand .wordmark2{font-size:15px;letter-spacing:.1em}
+}
 </style>
 </head>
 <body>
@@ -2114,24 +2176,31 @@ const _dcoS=doClockOut;doClockOut=function(mid){const e=openEntry(mid);if(e&&e.b
 /* ---------- sign-in screen (Proview Bookings style) ---------- */
 (function(){const l=document.createElement('div');l.id='login';document.body.appendChild(l);const t=document.createElement('nav');t.id='tabbar';t.setAttribute('aria-label','Main menu');document.body.appendChild(t)})();
 let LG={id:'',show:false,err:'',keep:true};
-function renderLogin(){const el=$('#login');
- el.innerHTML=`<div class="lg-wrap"><div class="lg-card card"><div class="bk-head lg-head"><div class="logo" role="img" aria-label="Proview logo"></div><h3>Proview Employee</h3><div class="small">${esc(S.org.name)}</div></div>
- <form class="pad" data-act-submit="doLogin" autocomplete="on"><b style="font-size:17px">Sign in</b><p class="mut small" style="margin:4px 0 6px">See your shifts, clock in and out, and check your tasks.</p>
- <label class="f" for="lgId">Email or phone</label><input class="inp" id="lgId" name="username" autocomplete="username" placeholder="name@company.co.uk" value="${esc(LG.id)}">
- <label class="f" for="lgPw">Password</label><div class="lg-pw"><input class="inp" id="lgPw" name="password" type="${LG.show?'text':'password'}" autocomplete="current-password" placeholder="Password or 4-digit PIN"><button type="button" class="icon-btn" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password">${ic('eye',17)}</button></div>
- ${LG.err?`<div class="lg-err">${esc(LG.err)}</div>`:''}
- <div class="row between" style="margin-top:12px"><label class="row small" style="gap:6px"><input type="checkbox" id="lgKeep" ${LG.keep?'checked':''}> Keep me signed in</label><button type="button" class="lg-link" data-act="lgForgot">Forgot password?</button></div>
- <button class="btn pri" type="submit" style="width:100%;justify-content:center;margin-top:16px">Sign in</button>
- <div class="lg-or"><span>or</span></div>
- <button type="button" class="btn" data-act="lgKiosk" style="width:100%;justify-content:center">${ic('kiosk',16)} Clock in at the kiosk</button>
- <p class="small mut" style="text-align:center;margin:14px 0 0">First time? Use the email your manager added you with and your kiosk PIN.</p>
- <div class="lg-demo small">Demo accounts, password <b>1234</b>:<br><button type="button" class="lg-link" data-act="lgFill" data-v="chloe@proviewtech.co.uk">chloe@proviewtech.co.uk</button> staff · <button type="button" class="lg-link" data-act="lgFill" data-v="sam@proviewtech.co.uk">sam@proviewtech.co.uk</button> owner</div>
- </form></div><p class="small mut" style="text-align:center;margin-top:14px">Proview Employee · part of Proview CRM</p></div>`}
+function renderLogin(){const el=$('#login');const now=new Date();const t=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const d=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
+ el.innerHTML=`<div class="auth2"><div class="auth2-art" aria-hidden="true">
+  <div class="auth2-brand"><span class="logo auth2-mark"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
+  <h2>Every shift, on time — from your phone.</h2>
+  <div class="ph"><div class="ph-scr"><div class="ph-notch"></div><div class="ph-d">${esc(d)}</div><div class="ph-t">${t}</div><div class="ph-pill">Working</div>
+   <div class="ph-b ph-brk">Start break</div><div class="ph-b ph-out">Clock out</div>
+   <div class="ph-card"><b>Today's tasks</b><div><i></i>Open till and count float</div><div><i class="on"></i>Check stock delivery</div></div></div></div>
+  <div class="ph-toast"><span class="ph-ok">✓</span><div><b>Clocked in · 08:58</b><span>Front desk · Head office</span></div></div>
+  <div class="ph-sheet"><span>This week</span><b>37h 30m</b><div class="ph-bars"><i style="height:70%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:90%"></i><i style="height:75%"></i><i style="height:25%"></i><i style="height:0"></i></div></div>
+  <div class="auth2-sub">Clock in and out, take breaks, and see your tasks, timesheets and P45s.</div></div>
+ <div class="auth2-form"><div><form data-act-submit="doLogin" autocomplete="on">
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
+  <h1>Sign in</h1><p class="auth2-mut">See your shifts, clock in and out, and check your tasks.</p>
+  <label class="field2">Email or phone<input id="lgId" name="username" autocomplete="username" placeholder="you@company.com" value="${esc(LG.id)}"></label>
+  <label class="field2">Password<div class="pw2"><input id="lgPw" name="password" type="${LG.show?'text':'password'}" autocomplete="current-password" placeholder="••••••••"><button type="button" class="pw2-eye" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password" title="${LG.show?'Hide':'Show'} password">${ic('eye',18)}</button></div></label>
+  ${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}
+  <button class="btn2 pri2" type="submit">Sign in</button>
+  <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="lgKiosk">Clock in at kiosk</button><button type="button" class="btn2 ghost2" data-act="lgForgot">Forgot password?</button></div>
+ </form>
+ <div class="auth2-demo">Demo, password 1234: <button type="button" class="lg-link" data-act="lgFill" data-v="chloe@proviewtech.co.uk">chloe@proviewtech.co.uk</button> (staff) · <button type="button" class="lg-link" data-act="lgFill" data-v="sam@proviewtech.co.uk">sam@proviewtech.co.uk</button> (owner)</div></div></div></div>`}
 A.lgShow=()=>{LG.id=$('#lgId').value;const pw=$('#lgPw').value;LG.show=!LG.show;renderLogin();$('#lgPw').value=pw};
 A.lgFill=el=>{LG.id=el.dataset.v;LG.err='';renderLogin();$('#lgPw').value='1234';$('#lgPw').focus()};
 A.lgKiosk=()=>{A.kiosk()};
 A.lgForgot=()=>openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Forgot your password?</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="mut">Ask your manager to reset it. They can set a new kiosk PIN for you in People, and you can sign in with that PIN, then choose a new password.</p><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="closeModal">Got it</button></div></div>`,420);
-A.doLogin=async()=>{const id=$('#lgId').value.trim().toLowerCase(),pw=$('#lgPw').value;LG.id=id;LG.keep=$('#lgKeep').checked;
+A.doLogin=async()=>{const id=$('#lgId').value.trim().toLowerCase(),pw=$('#lgPw').value;LG.id=id;LG.keep=true;
  if(!id||!pw){LG.err='Enter your email or phone and your password.';return renderLogin()}
  const digits=s=>String(s||'').replace(/\D/g,'');const m=S.members.find(x=>!x.archived&&((x.email||'').toLowerCase()===id||digits(id).length>=7&&digits(x.phone).endsWith(digits(id).slice(-9))));
  const ok=m&&(m.pwHash?(await sha(pw))===m.pwHash:pw===String(m.pin||''));
