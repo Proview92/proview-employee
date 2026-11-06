@@ -55,129 +55,27 @@
   }
   window.PE_LIC = { licState, licSummary, licBadge, licOk, LIC_TYPES };
 
-  /* ---------------- master page ---------------- */
-  const M = { data: [], q: '', filter: 'all', loading: false };
-  const host = document.createElement('div'); host.id = 'master'; document.body.appendChild(host);
-  const css = document.createElement('style');
-  css.textContent = `
-#master{display:none}
-body.master-on #master{display:block;position:fixed;inset:0;z-index:44;overflow:auto;background:var(--bg)}
-body.master-on #app,body.master-on #login{visibility:hidden}
-.ms-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:12px 22px;background:#141418;color:#fff}
-.ms-top .wordmark2{font-size:14px}.ms-top .ms-tag{font-size:12px;color:#9a9aa4;border-left:1px solid #33333c;padding-left:12px}
-.ms-top .sp{flex:1}.ms-top .btn{background:#23232a;border-color:#33333c;color:#ddd}
-.ms-main{max-width:1180px;margin:0 auto;padding:22px;display:flex;flex-direction:column;gap:16px}
-.ms-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
-.ms-head h1{margin:0;font-size:26px;letter-spacing:-.015em}
-.ms-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.ms-stat{padding:14px 16px}.ms-stat b{display:block;font-size:22px;margin-top:2px}
-.ms-card .ms-ch{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
-.ms-card .ms-ch h2{font-size:16px;margin:0;flex:1}
-.ms-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
-.ms-row:last-child{border-bottom:0}.ms-row .grow{flex:1;min-width:0}
-.ms-row .nm{font-weight:650}.ms-row .tiny{font-size:12.5px;color:var(--mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
-.ms-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.ms-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.ms-tools .inp{height:34px;width:220px}.ms-tools select.inp{width:auto;padding:0 28px 0 10px;line-height:32px}
-.ms-empty{padding:30px 16px;text-align:center;color:var(--mut)}
-.ms-prev{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-top:12px}
-.ms-staff-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:11.5px;font-weight:700;flex:none;background:#4a6cd0}
-@media (max-width:760px){
- .ms-top{padding:10px 14px}.ms-top .ms-tag{display:none}.ms-main{padding:14px;gap:12px}
- .ms-row{flex-wrap:wrap}.ms-acts{width:100%;justify-content:flex-start}
- .ms-tools{width:100%}.ms-tools .inp{flex:1;width:auto}
- .ms-head h1{font-size:22px}
-}`;
-  document.head.appendChild(css);
-
-  async function load() {
-    M.loading = true; paint();
-    const { data, error } = await O.sb.rpc('pe_master_overview');
-    M.loading = false;
-    if (error) { toast(O.friendly(error), 'bad'); return paint(); }
-    M.data = data || []; paint();
-  }
-  const allStaff = () => M.data.flatMap((o) => o.staff.filter((s) => !s.archived).map((s) => ({ ...s, org: o })));
-  function initials(n) { return String(n || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase(); }
-
-  function paint() {
-    if (!document.body.classList.contains('master-on')) return;
-    const staff = allStaff();
-    const paid = staff.filter((s) => licOk(s) && s.license_type !== 'trial3').length;
-    const trial = staff.filter((s) => s.license_type === 'trial3' && licOk(s)).length;
-    const locked = staff.filter((s) => !licOk(s)).length;
-    const needs = staff.map((s) => ({ s, L: licState(s) })).filter(({ L }) => ['none', 'expiring', 'grace', 'expired'].includes(L.state))
-      .sort((a, b) => (a.L.expires ?? 0) - (b.L.expires ?? 0));
-    const q = M.q.trim().toLowerCase();
-    const match = (s) => !q || [s.name, s.email, s.org.name].some((x) => (x || '').toLowerCase().includes(q));
-    const fil = (s) => M.filter === 'all' || (M.filter === 'paid' && licOk(s) && s.license_type !== 'trial3') || (M.filter === 'trial' && s.license_type === 'trial3' && licOk(s)) || (M.filter === 'locked' && !licOk(s));
-    const mine = (O.orgs || []).filter((o) => !o.locked);
-    host.innerHTML = `
-<div class="ms-top"><span class="logo auth2-mark" style="width:30px!important;height:22px!important"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span><span class="ms-tag">Master admin</span><span class="sp"></span>
-${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 15)} ${mine.length === 1 ? 'Open ' + esc(mine[0].org_name) : 'My companies'}</button>` : ''}
-<button class="btn sm" data-act="signOut" title="Sign out">${ic('logout', 15)}<span class="hide-sm">Sign out</span></button></div>
-<div class="ms-main">
- <div class="ms-head"><div><h1>Businesses and licences</h1><p class="mut" style="margin:4px 0 0">${plural(M.data.length, 'business')} · ${plural(staff.length, 'staff member')} · ${paid} paid · ${trial} on trial · ${locked} without access</p></div>
- <div class="row" style="gap:8px"><a class="btn" href="https://license.proviewcrm.co.uk" target="_blank" rel="noopener">Licence portal ↗</a><button class="btn" data-act="msReload">${ic('swap', 15)} Refresh</button><button class="btn pri" data-act="msNewOrg">${ic('plus', 15)} New business</button></div></div>
- ${M.loading && !M.data.length ? `<div class="card ms-empty">Loading…</div>` : ''}
- ${needs.length ? `<div class="card ms-card"><div class="ms-ch"><h2>Licences needing attention</h2><span class="chip amber">${needs.length}</span></div>
-   ${needs.slice(0, 50).map(({ s }) => `<div class="ms-row"><div class="ms-staff-av">${esc(initials(s.name))}</div><div class="grow"><div class="nm">${esc(s.name || 'Unnamed')}</div><div class="tiny">${esc(s.org.name)} · ${esc(s.role)}${s.email ? ' · ' + esc(s.email) : ''}</div></div>${licBadge(s)}<div class="ms-acts"><a class="btn sm pri" href="https://license.proviewcrm.co.uk" target="_blank" rel="noopener">Renew ↗</a></div></div>`).join('')}
-   ${needs.length > 50 ? `<div class="ms-row mut small">and ${needs.length - 50} more, see All staff below</div>` : ''}</div>` : ''}
- <div class="card ms-card"><div class="ms-ch"><h2>Businesses</h2></div>
-  ${M.data.length ? M.data.map((o) => {
-    const st = o.staff.filter((s) => !s.archived), ok = st.filter(licOk).length, logins = st.filter((s) => s.has_login).length;
-    return `<div class="ms-row"><div class="grow"><div class="nm">${esc(o.name)} ${o.suspended ? '<span class="chip red">On hold</span>' : ''} ${o.self_signup ? '<span class="chip">Signed up online</span>' : ''}</div>
-      <div class="tiny">${[o.contact_email, plural(st.length, 'staff member'), plural(logins, 'sign-in'), 'since ' + fmt(o.created_at), o.last_active ? 'last active ' + fmt(o.last_active) : null, o.notes ? o.notes.slice(0, 60) : null].filter(Boolean).map(esc).join(' · ')}</div></div>
-      <span class="chip ${ok === st.length && st.length ? 'green' : ok ? 'amber' : 'red'}">${ok}/${st.length} licensed</span>
-      <div class="ms-acts"><button class="btn sm pri" data-act="msOpenOrg" data-o="${esc(o.id)}" title="Open this business with full access">Open</button><button class="btn sm" data-act="msOrgStaff" data-o="${esc(o.id)}">Licences</button><button class="btn sm ghost" data-act="msEditOrg" data-o="${esc(o.id)}" title="Edit" aria-label="Edit ${esc(o.name)}">${ic('edit', 15)}</button></div></div>`;
-  }).join('') : (M.loading ? '' : `<div class="ms-empty"><b>No businesses yet</b><br>Add one, or they appear here when a customer signs up online.<br><br><button class="btn pri" data-act="msNewOrg">${ic('plus', 15)} New business</button></div>`)}</div>
- <div class="card ms-card"><div class="ms-ch"><h2>All staff</h2><div class="ms-tools"><input class="inp" id="msQ" placeholder="Search name, email or business" value="${esc(M.q)}" autocomplete="off">
-   <select class="inp" style="width:auto" data-act-change="msFilter">${[['all', 'Everyone'], ['paid', 'Paid'], ['trial', 'On trial'], ['locked', 'Without access']].map(([k, l]) => `<option value="${k}" ${M.filter === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
-  ${(() => { const list = staff.filter((s) => match(s) && fil(s)); return list.length ? list.map((s) => `<div class="ms-row"><div class="ms-staff-av">${esc(initials(s.name))}</div><div class="grow"><div class="nm">${esc(s.name || 'Unnamed')}</div><div class="tiny">${[s.org.name, s.role, s.email, s.has_login ? 'can sign in' : 'no sign-in yet'].filter(Boolean).map(esc).join(' · ')}</div></div>${licBadge(s)}<div class="ms-acts"><a class="btn sm" href="https://license.proviewcrm.co.uk" target="_blank" rel="noopener">Licence ↗</a></div></div>`).join('') : `<div class="ms-empty">No staff match.</div>`; })()}</div>
-</div>`;
-    if (M.focusQ) { const i = $('#msQ'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } M.focusQ = false; }
-  }
-
-  function open() {
-    document.body.classList.add('master-on');
-    O.lsSet('pe-master-mode:' + O.user.id, true);
-    paint(); load();
-  }
-  window.PE_MASTER = { open, reload: load };
-
-  A.msReload = () => load();
-  host.addEventListener('input', (e) => { if (e.target.id === 'msQ') { M.q = e.target.value; M.focusQ = true; paint(); } });
-  A.msFilter = (el) => { M.filter = el.value; paint(); };
-  A.msOpenMine = () => {
-    const mine = (O.orgs || []).filter((o) => !o.locked);
-    const go = (org) => { A.closeModal(); O.lsSet('pe-master-mode:' + O.user.id, false); document.body.classList.remove('master-on'); O.enterOrg(org); };
-    if (mine.length === 1) return go(mine[0]);
-    A.msGo = (el) => go(mine.find((o) => o.org_id === el.dataset.o));
-    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Open a company</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>${mine.map((o) => `<button class="btn" style="width:100%;justify-content:flex-start;margin-top:10px" data-act="msGo" data-o="${esc(o.org_id)}">${ic('building', 15)} ${esc(o.org_name)} <span class="mut small" style="margin-left:auto">${esc(o.role)}</span></button>`).join('')}</div>`, 420);
-  };
-  // open any business as the Proview master admin (Owner rights, not one of their staff)
-  A.msOpenOrg = (el) => {
-    const o = M.data.find((x) => x.id === el.dataset.o); if (!o) return;
-    const mine = (O.orgs || []).find((x) => x.org_id === o.id && !x.locked);
-    O.lsSet('pe-master-mode:' + O.user.id, false);
-    document.body.classList.remove('master-on'); host.innerHTML = '';
-    O.enterOrg(mine || { org_id: o.id, org_name: o.name, member_id: 'proview-master', role: 'Owner', as_master: true });
-  };
-  A.msBackToMaster = () => { O.lsSet('pe-master-mode:' + O.user.id, true); location.reload(); };
-
-  const findStaff = (o, m) => { const org = M.data.find((x) => x.id === o); return { org, s: org?.staff.find((x) => x.member_id === m) }; };
-
-  /* licences are managed in the Proview licence portal; this view is read-only */
+  let pickList = null, pickLoading = false;
+  /* ---------------- master admin (Proview) ----------------
+     Businesses and licences are managed only at license.proviewcrm.co.uk.
+     In the app a master admin simply opens a business (the last one used, or the
+     first) and switches with the picker under the logo. */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
-  A.msLic = () => window.open(LIC_PORTAL, '_blank', 'noopener');
-  A.msOrgStaff = (el) => {
-    const org = M.data.find((x) => x.id === el.dataset.o); if (!org) return;
-    const st = org.staff.filter((s) => !s.archived);
-    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">${esc(org.name)}: licences</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>
-      <div style="margin:10px -24px 0;border-top:1px solid var(--line)">${st.map((s) => `<div class="ms-row"><div class="grow"><div class="nm">${esc(s.name || 'Unnamed')}</div><div class="tiny">${esc(s.role)}${s.email ? ' · ' + esc(s.email) : ''}</div></div>${licBadge(s)}</div>`).join('') || '<div class="ms-empty">No staff yet.</div>'}</div>
-      <div style="border-top:1px solid var(--line);margin:0 -24px;padding:14px 24px 0" class="row between"><span class="small mut">Licences are set and renewed in the licence portal.</span><a class="btn pri" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a></div></div>`, 560);
-  };
-  A.signOut = async function () { document.body.classList.remove('master-on'); host.innerHTML = ''; return _signOut.apply(this, arguments); };
+  async function open() {
+    const last = O.lsGet('pe-last-org:' + O.user.id);
+    let list = [];
+    try { const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error; list = data || []; } catch (e) { toast(O.friendly(e), 'bad'); }
+    pickList = list.map((o) => ({ id: o.id, name: o.name }));
+    const mine = (O.orgs || []).filter((o) => !o.locked);
+    const own = mine.find((o) => o.org_id === last);
+    if (own) return O.enterOrg(own);
+    const o = list.find((x) => x.id === last) || null;
+    if (o) return O.enterOrg({ org_id: o.id, org_name: o.name, member_id: 'proview-master', role: 'Owner', as_master: true });
+    if (mine.length) return O.enterOrg(mine[0]);
+    if (list.length) return O.enterOrg({ org_id: list[0].id, org_name: list[0].name, member_id: 'proview-master', role: 'Owner', as_master: true });
+    openModal(`<div class="pad"><b style="font-size:17px">No businesses yet</b><p class="small mut">Add businesses and licences in the Proview licence portal, then come back here.</p><div class="row" style="gap:8px;justify-content:flex-end"><button class="btn" data-act="signOut">Sign out</button><a class="btn pri" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a></div></div>`);
+  }
+  window.PE_MASTER = { open };
 
   /* ---------------- licences inside a business's own app ---------------- */
   const myLic = (mid) => O.licences && O.licences.get(mid);
@@ -246,22 +144,22 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     A[n] = function (el) { const id = who(el); if (id && blocked(id)) return; return f.apply(this, arguments); };
   });
 
-  // master admins inside one of their own companies: a way back to the master page
+  // master admins: a shortcut to the licence portal (businesses and licences are managed there)
   const _renderTop = renderTop;
   renderTop = function () {
     _renderTop.apply(this, arguments);
     if (!O.ready || !O.master) return;
-    const top = $('#top'); if (!top || top.querySelector('[data-act=msBackToMaster]')) return;
-    const b = document.createElement('button'); b.className = 'btn sm'; b.dataset.act = 'msBackToMaster'; b.innerHTML = ic('shield', 14) + '<span class="hide-sm"> Master admin</span>'; b.title = 'Master admin';
+    const top = $('#top'); if (!top || top.querySelector('.pe-portal')) return;
+    const b = document.createElement('a'); b.className = 'btn sm pe-portal'; b.href = LIC_PORTAL; b.target = '_blank'; b.rel = 'noopener'; b.title = 'Businesses and licences are managed in the licence portal';
+    b.innerHTML = ic('shield', 14) + '<span class="hide-sm"> Licence portal ↗</span>';
     const sp = top.querySelector('.sp'); if (sp) sp.after(b); else top.appendChild(b);
   };
 
   /* ---------------- business picker under the logo (same as Proview Signage's client picker) ---------------- */
   // Master admins see every business (plus a way back to the master page); others see the companies they belong to.
-  let pickList = null, pickLoading = false;
   async function pickLoad() {
     if (pickLoading) return; pickLoading = true;
-    try { const { data } = await O.sb.rpc('pe_master_overview'); pickList = (data || []).map((o) => ({ id: o.id, name: o.name })); if (!M.data.length) M.data = data || []; }
+    try { const { data } = await O.sb.rpc('pe_master_overview'); pickList = (data || []).map((o) => ({ id: o.id, name: o.name })); }
     catch (e) { pickList = []; }
     pickLoading = false; if (O.ready) renderNav();
   }
@@ -277,11 +175,10 @@ ${mine.length ? `<button class="btn sm" data-act="msOpenMine">${ic('building', 1
     const items = pickItems().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
     if (!items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
-    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${O.master ? `<option value="__master">Master admin: all businesses</option>` : ''}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
   }
   A.pePickOrg = (el) => {
     const id = el.value; if (!id || id === O.org) return;
-    if (id === '__master') return A.msBackToMaster();
     const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
     const o = (pickList || []).find((x) => x.id === id);
     O.enterOrg(mine || { org_id: id, org_name: o?.name || '', member_id: 'proview-master', role: 'Owner', as_master: true });

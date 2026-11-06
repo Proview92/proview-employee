@@ -376,13 +376,14 @@
       if (c) orgs = [{ org_id: c.org, org_name: c.orgName, member_id: c.member, role: c.role }];
       else { setLoading(''); LG.err = friendly(e); renderLogin(); return; }
     }
-    // master admin (Proview): goes to the master page unless they chose one of their own companies last time
     O.orgs = orgs;
     O.master = orgs.some((o) => o.is_master);
     if (!O.master) { try { const { data } = await O.sb.rpc('pe_am_master'); O.master = !!data; } catch (e) {} }
     const usable = orgs.filter((o) => !o.locked);
-    if (O.master && window.PE_MASTER && (!usable.length || lsGet('pe-master-mode:' + user.id) !== false)) {
-      setLoading(''); window.PE_MASTER.open(); return;
+    // master admin (Proview): open the last business used (any business, not just their own); no master page
+    if (O.master && window.PE_MASTER) {
+      const lastOrg = lsGet('pe-last-org:' + user.id);
+      if (!usable.length || (lastOrg && !usable.some((o) => o.org_id === lastOrg))) { await window.PE_MASTER.open(); return; }
     }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
