@@ -491,6 +491,88 @@ table.rota td:first-child,table.rota th:first-child{min-width:200px;position:sti
  .chip{min-height:22px}.seg button{min-height:34px}.btn.sm{min-height:32px}.btn.ghost.sm{min-width:32px;justify-content:center}.icon-btn{min-width:36px;min-height:36px}
 }
 @media print{body.printing .app,body.printing #drawer,body.printing #scrim,body.printing #toast{display:none!important}body.printing .modal-bg{position:static;display:block;padding:0;background:none}body.printing .modal-bg .noprint{display:none!important}body.printing .modal{max-width:none;box-shadow:none;border:0}body.printing .inv-paper{padding:0}}
+/* ===== sign-in (Proview Bookings card style) ===== */
+#login{display:none}
+body.signed-out #login{display:block;position:fixed;inset:0;z-index:45;overflow:auto;background:var(--bg)}
+body.signed-out #app{visibility:hidden}
+.lg-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px}
+.lg-card{width:100%;max-width:400px;overflow:hidden;padding:0}
+.lg-head{text-align:center}
+.lg-head .logo{width:60px;height:42px;margin:0 auto 8px}
+.lg-head .small{opacity:.85}
+.lg-pw{position:relative}.lg-pw .inp{padding-right:44px}.lg-pw .icon-btn{position:absolute;right:2px;top:50%;transform:translateY(-50%);color:var(--mut)}
+.lg-err{margin-top:10px;background:var(--badl);color:var(--bad);border-radius:9px;padding:8px 10px;font-size:13px;font-weight:500}
+.lg-link{background:none;border:0;padding:0;color:var(--pri);font-weight:600;cursor:pointer;font-size:inherit}
+.lg-or{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--mut);font-size:12px}.lg-or:before,.lg-or:after{content:"";flex:1;height:1px;background:var(--line)}
+.lg-demo{margin-top:14px;background:var(--pri-l);border-radius:10px;padding:10px 12px;text-align:center;line-height:1.7}
+/* ===== staff portal ===== */
+.s-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.s-hero{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:22px;flex-wrap:wrap}
+.s-h1{font-size:26px;margin:4px 0 6px}
+.s-hero-clock{text-align:center;min-width:250px;background:var(--bg);border-radius:14px;padding:16px 18px}
+.s-timer{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;margin:6px 0 2px}
+.s-pill{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;padding:4px 12px;border-radius:20px;background:var(--greyl);color:var(--mut)}
+.s-pill:before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.s-pill.in{background:var(--okl);color:var(--ok)}.s-pill.break{background:var(--warnl);color:var(--warn)}
+.s-alert{display:flex;align-items:center;gap:10px;padding:14px 16px;border:1px solid var(--pri);background:var(--pri-l);color:var(--pri);font-weight:600;cursor:pointer;text-align:left;width:100%;font:inherit;font-weight:600}
+.s-alert span{flex:1}
+.s-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.s-stat{padding:14px 16px;display:flex;flex-direction:column;gap:4px}.s-stat b{font-size:20px;font-variant-numeric:tabular-nums}
+.s-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.s-ch{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.s-row{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.s-row:last-child{border-bottom:0}
+.s-date{width:44px;flex:none;text-align:center;display:flex;flex-direction:column;line-height:1.15}.s-date b{font-size:18px}.s-date span{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.s-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;color:var(--mut);text-align:center}
+.s-clock{text-align:center;padding:30px 20px 22px;display:flex;flex-direction:column;align-items:center}
+.s-now{font-size:54px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1}
+.sc-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:22px 0 16px;width:100%}
+.sc-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-width:190px;padding:16px 22px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:17px;font-weight:700;cursor:pointer}
+.sc-btn.pri{background:var(--grad);border-color:transparent;color:#fff}
+.sc-btn.brk{background:var(--warnl);border-color:transparent;color:var(--warn)}
+.sc-btn.out{background:var(--badl);border-color:transparent;color:var(--bad)}
+.sc-btn:hover{filter:brightness(.96)}.sc-btn:active{transform:scale(.98)}
+.btn.brk{background:var(--warnl);border-color:transparent;color:var(--warn)}.btn.out{background:var(--badl);border-color:transparent;color:var(--bad)}
+.s-shift{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13.5px;background:var(--bg);border-radius:10px;padding:9px 14px}
+.s-log{padding:8px 16px 14px}
+.s-ev{display:flex;gap:12px;align-items:center;padding:8px 0;position:relative}
+.s-ev b{width:44px;font-variant-numeric:tabular-nums}
+.s-dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--okl)}
+.s-ev.brk .s-dot,.s-ev.brkend .s-dot{background:var(--warn);box-shadow:0 0 0 3px var(--warnl)}.s-ev.out .s-dot{background:var(--bad);box-shadow:0 0 0 3px var(--badl)}
+.s-tabs{margin:0;padding:0;border-bottom:1px solid var(--line)}.s-tabs .cnt{margin-left:6px;font-size:11px;background:var(--greyl);color:var(--mut);border-radius:10px;padding:1px 7px}
+.s-prog{display:flex;flex-direction:column;gap:10px}.s-bar{height:8px;border-radius:6px;background:var(--greyl);overflow:hidden}.s-bar span{display:block;height:100%;background:var(--grad);border-radius:6px}
+.s-task{display:flex;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}.card>.s-task:first-child,.s-ch+.s-task{border-top:0}
+.s-task>div{cursor:pointer}.s-task.done b{text-decoration:line-through;color:var(--mut)}
+.s-check{width:26px;height:26px;flex:none;border-radius:8px;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;color:#fff}
+.s-check.on{background:var(--ok);border-color:var(--ok)}
+.s-task-acts{display:flex;gap:8px;padding:0 16px 12px 54px}
+.s-wk{flex-wrap:wrap;gap:10px}
+.s-ts-row{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.s-ts-row.today{background:var(--pri-l)}.s-ts-row.empty{opacity:.75}
+.s-ts-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.s-ts-num{width:76px;text-align:right;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.s-ts-tot{border-bottom:0;background:var(--bg);border-radius:0 0 12px 12px}
+.s-docs{display:flex;flex-direction:column;gap:12px}
+.s-doc{display:flex;gap:14px;align-items:center;padding:16px;flex-wrap:wrap}
+.s-doc-ic{width:50px;height:50px;border-radius:12px;background:var(--pri-l);color:var(--pri);display:grid;place-items:center;flex:none}
+.s-info{border-left:0}
+body.staff .collapse-btn{display:inline-flex}
+@media (max-width:700px){
+ .hide-sm{display:none!important}
+ .s-grid{grid-template-columns:1fr}
+ .s-hero{padding:16px}.s-hero-clock{width:100%;min-width:0}.s-h1{font-size:22px}
+ .s-stats{grid-template-columns:1fr 1fr}
+ .s-now{font-size:44px}
+ .sc-btns{flex-direction:column}.sc-btn{width:100%;min-height:58px}
+ .s-ts-num{width:58px}.s-ts-row{padding:10px 12px;gap:10px}
+ .s-doc-acts{width:100%}.s-doc-acts .btn{flex:1;justify-content:center;min-height:42px}
+ .s-task{padding:12px}.s-task-acts{padding-left:50px}
+ .s-task-acts .btn,.s-wk .btn{min-height:38px}
+ .lg-wrap{justify-content:flex-start;padding-top:20px}
+}
+@media (max-width:700px){.p45t{min-width:0!important;width:100%}.p45t th,.p45t td{padding:8px 6px}.p45t .av{display:none}.p45t th:nth-child(5),.p45t td:nth-child(5){white-space:nowrap}}
+@media (max-width:700px){.s-check{width:32px;height:32px}.s-task-acts{padding-left:56px}.s-ch .btn{min-height:34px}}
+.s-ts-num b{white-space:nowrap}@media (max-width:700px){.s-ts-num{width:64px}}
+@media (max-width:700px){.lg-demo .lg-link{padding:6px 2px;display:inline-block}}
 </style>
 </head>
 <body>
@@ -1974,6 +2056,166 @@ render();
 setInterval(()=>{const t=$('#myTimer');if(t&&t.dataset.in){const e=openEntry(S.me);if(e){t.firstChild.textContent=HMS(eDur(e))}}const lc=$('#liveClock');if(lc)lc.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const kc=$('#kclock');if(kc)kc.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});},1000);
 setInterval(()=>{const busy=$('#drawer').classList.contains('open')||$('#modal').classList.contains('show')||K||['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName);if(!busy&&['dashboard','timesheets'].includes(U.view)){U.keepScroll=true;render()}},30000);
 window.addEventListener('storage',e=>{if(e.key===KEY){load();render()}});
+
+/* ================= Staff sign-in + staff portal (Home, Time clock, Tasks, Timesheets, P45s) ================= */
+ICON.home='<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>';
+ICON.logout='<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/>';
+ICON.eye='<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
+ICON.lock='<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>';
+ICON.doc='<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>';
+const SESSION_KEY='pe-session';
+const sess=()=>{try{return localStorage.getItem(SESSION_KEY)||sessionStorage.getItem(SESSION_KEY)}catch(e){return null}};
+const realUser=()=>mem(sess());
+const isStaff=()=>me()?.role==='Member';
+const STAFF_NAV=[['sHome','Home','home'],['sClock','Time clock','clock'],['sTasks','Tasks','task'],['sSheets','Timesheets','timer'],['sP45','P45s','doc']];
+STAFF_NAV.forEach(n=>TITLES[n[0]]=n[1]);
+if(!S.docs)S.docs=[];
+async function sha(t){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('pe:'+t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return'plain:'+t}}
+
+/* ---------- demo P45 (a small real PDF) ---------- */
+function makePdf(lines){const esc2=s=>s.replace(/[\\()]/g,c=>'\\'+c);let y=780;const txt=lines.map((l,i)=>{const sz=i===0?18:11;const r=`BT /F1 ${sz} Tf 56 ${y} Td (${esc2(l)}) Tj ET`;y-=i===0?34:20;return r}).join('\n');
+ const objs=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',`<< /Length ${txt.length} >>\nstream\n${txt}\nendstream`];
+ let out='%PDF-1.4\n';const off=[];objs.forEach((o,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});const x=out.length;out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+ return'data:application/pdf;base64,'+btoa(out)}
+function taxYearOf(d){const y=+d.slice(0,4),md=d.slice(5);const s=md>='04-06'?y:y-1;return`${s}/${String(s+1).slice(2)}`}
+if(!S.docsSeeded){S.docsSeeded=true;const m=mem('m4');if(m&&!S.docs.length){const lv=addDays(today(),-20);S.docs.push({id:uid(),member:'m4',type:'P45',taxYear:taxYearOf(lv),leaveDate:lv,name:'P45-Chloe-Evans-sample.pdf',size:0,data:makePdf(['P45 - Details of employee leaving work (sample)','Employer: '+S.org.name,'Employee: '+m.name,'Leaving date: '+fmtDate(lv,{day:'numeric',month:'long',year:'numeric'}),'Tax code at leaving: 1257L','Total pay to date: GBP 14,820.00','Total tax to date: GBP 1,868.40','','This is a demo document created by Proview Employee.']),uploadedAt:Date.now()-864e5*2,uploadedBy:'m2',viewedAt:null})}save()}
+
+/* closing a break by clocking out keeps it in the break log */
+const _dcoS=doClockOut;doClockOut=function(mid){const e=openEntry(mid);if(e&&e.brkStart)e.breaks=[...(e.breaks||[]),{name:e.brkName||'Break',start:e.brkStart,end:Date.now(),paid:!!e.brkPaid}];return _dcoS(mid)};
+/* ---------- sign-in screen (Proview Bookings style) ---------- */
+(function(){const l=document.createElement('div');l.id='login';document.body.appendChild(l)})();
+let LG={id:'',show:false,err:'',keep:true};
+function renderLogin(){const el=$('#login');
+ el.innerHTML=`<div class="lg-wrap"><div class="lg-card card"><div class="bk-head lg-head"><div class="logo" role="img" aria-label="Proview logo"></div><h3>Proview Employee</h3><div class="small">${esc(S.org.name)}</div></div>
+ <form class="pad" data-act-submit="doLogin" autocomplete="on"><b style="font-size:17px">Sign in</b><p class="mut small" style="margin:4px 0 6px">See your shifts, clock in and out, and check your tasks.</p>
+ <label class="f" for="lgId">Email or phone</label><input class="inp" id="lgId" name="username" autocomplete="username" placeholder="name@company.co.uk" value="${esc(LG.id)}">
+ <label class="f" for="lgPw">Password</label><div class="lg-pw"><input class="inp" id="lgPw" name="password" type="${LG.show?'text':'password'}" autocomplete="current-password" placeholder="Password or 4-digit PIN"><button type="button" class="icon-btn" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password">${ic('eye',17)}</button></div>
+ ${LG.err?`<div class="lg-err">${esc(LG.err)}</div>`:''}
+ <div class="row between" style="margin-top:12px"><label class="row small" style="gap:6px"><input type="checkbox" id="lgKeep" ${LG.keep?'checked':''}> Keep me signed in</label><button type="button" class="lg-link" data-act="lgForgot">Forgot password?</button></div>
+ <button class="btn pri" type="submit" style="width:100%;justify-content:center;margin-top:16px">Sign in</button>
+ <div class="lg-or"><span>or</span></div>
+ <button type="button" class="btn" data-act="lgKiosk" style="width:100%;justify-content:center">${ic('kiosk',16)} Clock in at the kiosk</button>
+ <p class="small mut" style="text-align:center;margin:14px 0 0">First time? Use the email your manager added you with and your kiosk PIN.</p>
+ <div class="lg-demo small">Demo accounts, password <b>1234</b>:<br><button type="button" class="lg-link" data-act="lgFill" data-v="chloe@proviewtech.co.uk">chloe@proviewtech.co.uk</button> staff · <button type="button" class="lg-link" data-act="lgFill" data-v="sam@proviewtech.co.uk">sam@proviewtech.co.uk</button> owner</div>
+ </form></div><p class="small mut" style="text-align:center;margin-top:14px">Proview Employee · part of Proview CRM</p></div>`}
+A.lgShow=()=>{LG.id=$('#lgId').value;const pw=$('#lgPw').value;LG.show=!LG.show;renderLogin();$('#lgPw').value=pw};
+A.lgFill=el=>{LG.id=el.dataset.v;LG.err='';renderLogin();$('#lgPw').value='1234';$('#lgPw').focus()};
+A.lgKiosk=()=>{A.kiosk()};
+A.lgForgot=()=>openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Forgot your password?</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="mut">Ask your manager to reset it. They can set a new kiosk PIN for you in People, and you can sign in with that PIN, then choose a new password.</p><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="closeModal">Got it</button></div></div>`,420);
+A.doLogin=async()=>{const id=$('#lgId').value.trim().toLowerCase(),pw=$('#lgPw').value;LG.id=id;LG.keep=$('#lgKeep').checked;
+ if(!id||!pw){LG.err='Enter your email or phone and your password.';return renderLogin()}
+ const digits=s=>String(s||'').replace(/\D/g,'');const m=S.members.find(x=>!x.archived&&((x.email||'').toLowerCase()===id||digits(id).length>=7&&digits(x.phone).endsWith(digits(id).slice(-9))));
+ const ok=m&&(m.pwHash?(await sha(pw))===m.pwHash:pw===String(m.pin||''));
+ if(!ok){LG.err='That email or password isn’t right. Try again.';renderLogin();$('#lgPw').focus();return}
+ LG={id:'',show:false,err:'',keep:true};try{(LG.keep?localStorage:sessionStorage).setItem(SESSION_KEY,m.id)}catch(e){}
+ S.me=m.id;save();U.view=m.role==='Member'?'sHome':'dashboard';render();toast(`Welcome, ${m.name.split(' ')[0]}`)};
+A.signOut=()=>{try{localStorage.removeItem(SESSION_KEY);sessionStorage.removeItem(SESSION_KEY)}catch(e){}closeDrawer();A.closeModal();A.navClose?.();render()};
+A.backToAdmin=()=>{const r=realUser();if(!r)return;S.me=r.id;save();U.view='dashboard';render();toast('Back to the admin view')};
+
+/* ---------- shell for staff ---------- */
+const _renderNavS=renderNav;renderNav=function(){if(!isStaff()){_renderNavS();$('#nav .mobile-only')?.insertAdjacentHTML('beforeend',`<button data-act="signOut">${ic('logout',19)}<span class="lbl">Sign out</span></button>`);$('#sideFoot').insertAdjacentHTML('beforeend',`<button data-act="signOut" title="Sign out" style="background:none;border:0;color:#8b8b95;letter-spacing:.06em;font-size:12px;margin-left:auto">${ic('logout',14)}<span class="lbl">SIGN OUT</span></button>`);return}
+ const open=S.tasks.filter(t=>t.assignee===S.me&&t.date===today()&&t.status!=='done').length;const newDocs=S.docs.filter(d=>d.member===S.me&&!d.viewedAt).length;
+ $('#nav').innerHTML=STAFF_NAV.map(([k,l,i])=>`<button class="${U.view===k?'on':''}" data-act="go" data-v="${k}" title="${l}">${ic(i,19)}<span class="lbl">${l}</span>${k==='sTasks'&&open?`<span class="cnt">${open}</span>`:''}${k==='sP45'&&newDocs?`<span class="cnt">${newDocs}</span>`:''}</button>`).join('')+
+  `<div class="mobile-only"><div class="nav-div"></div><button data-act="mDark">${ic('moon',19)}<span class="lbl">${S.settings.dark?'Light':'Dark'} mode</span></button><button data-act="signOut">${ic('logout',19)}<span class="lbl">Sign out</span></button></div>`;
+ const m=me();$('#venueCard').innerHTML=`<div class="row" style="flex-wrap:nowrap"><div class="av" style="width:34px;height:34px;background:${m?.color||'var(--pri)'}">${esc(initials(m?.name))}</div><div style="flex:1;min-width:0"><b>${esc(m?.name||'')}</b><span style="color:#8b8b95;font-size:11.5px">${esc(S.org.name)}</span></div>${ic('right',16)}</div>`;$('#venueCard').dataset.act='sProfile';
+ $('#sideFoot').innerHTML=`<button data-act="collapse" title="Collapse menu" style="background:none;border:0;color:#8b8b95;letter-spacing:.06em;font-size:12px">${ic('left',14)}<span class="lbl">COLLAPSE</span></button><button data-act="signOut" title="Sign out" style="background:none;border:0;color:#8b8b95;letter-spacing:.06em;font-size:12px;margin-left:auto">${ic('logout',14)}<span class="lbl">SIGN OUT</span></button>`};
+const _renderTopS=renderTop;renderTop=function(){if(!isStaff())return _renderTopS();const unread=S.notes.filter(n=>!n.read).length;const r=realUser();
+ $('#top').innerHTML=`<button class="icon-btn menu-btn" data-act="navToggle" title="Menu" aria-label="Open menu">${ic('burger',20)}</button><h2>${TITLES[U.view]||''}</h2><div class="sp"></div>${r&&r.role!=='Member'&&r.id!==S.me?`<button class="btn sm" data-act="backToAdmin">${ic('left',14)} Admin view</button>`:''}<span class="chip ${status(S.me)==='in'?'green':status(S.me)==='break'?'amber':''} hide-sm">${status(S.me)==='in'?'Working':status(S.me)==='break'?'On break':'Clocked out'}</span><button class="icon-btn" data-act="notifs" title="Notifications">${ic('bell')}${unread?`<span class="badge">${unread}</span>`:''}</button><button class="icon-btn hide-sm" data-act="signOut" title="Sign out">${ic('logout')}</button>`};
+const _renderS=renderNow;renderNow=function(){const lg=$('#login');if(!realUser()){document.body.classList.add('signed-out');document.body.classList.toggle('dark',!!S.settings.dark);renderLogin();return}
+ document.body.classList.remove('signed-out');lg.innerHTML='';document.body.classList.toggle('staff',isStaff());
+ if(isStaff()&&!STAFF_NAV.some(n=>n[0]===U.view))U.view='sHome';if(!isStaff()&&U.view.startsWith('s')&&STAFF_NAV.some(n=>n[0]===U.view))U.view='dashboard';_renderS()};
+A.sProfile=()=>{A.navClose?.();const m=me();openDrawer('My profile',`<div class="row" style="margin:16px 0;flex-wrap:nowrap"><div class="av" style="width:52px;height:52px;font-size:18px;background:${m.color}">${esc(initials(m.name))}</div><div><b style="font-size:16px">${esc(m.name)}</b><div class="mut small">${esc(m.role)} · ${esc(grp(m.group)?.name||'No group')}</div></div></div>
+ <div class="kv"><span>Email</span><b>${esc(m.email||'Not set')}</b></div><div class="kv"><span>Phone</span><b>${esc(m.phone||'Not set')}</b></div><div class="kv"><span>Schedule</span><b>${esc(sched(m)?.name||'None')}</b></div><div class="kv"><span>Kiosk PIN</span><b>••••</b></div>
+ <div class="nav-sec" style="padding:18px 0 6px">Change password</div><label class="f" style="margin-top:0">New password</label><input class="inp" type="password" id="npw1" autocomplete="new-password" placeholder="At least 8 characters"><label class="f">Confirm new password</label><input class="inp" type="password" id="npw2" autocomplete="new-password">`,
+ `<button class="btn" data-act="signOut">${ic('logout',15)} Sign out</button><button class="btn pri" data-act="sSavePw">Save password</button>`)};
+A.sSavePw=async()=>{const a=$('#npw1').value,b=$('#npw2').value;if(a.length<8)return toast('Use at least 8 characters','bad');if(a!==b)return toast('Passwords don’t match','bad');me().pwHash=await sha(a);save();closeDrawer();toast('Password updated')};
+
+/* ---------- helpers ---------- */
+const myShifts=(from,to)=>S.rota.shifts.filter(s=>s.member===S.me&&s.published&&s.date>=from&&s.date<=to).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+const locName=id=>S.locations.find(l=>l.id===id)?.name||'';
+const needName=id=>(S.rota.needs||[]).find(n=>n.id===id)?.name||'';
+function shiftLine(s){return`${s.start}–${s.end}${needName(s.need)?` · ${esc(needName(s.need))}`:''}${locName(s.location)?` · ${esc(locName(s.location))}`:''}`}
+function punches(mid,d){const ev=[];entriesFor(mid,d,d).sort((a,b)=>a.in-b.in).forEach(e=>{ev.push({t:e.in,k:'in',l:'Clocked in'});(e.breaks||[]).forEach(b=>{const bs=b.start??b.s,be=b.end??b.e;if(!bs)return;ev.push({t:bs,k:'brk',l:`${b.name||'Break'} started`});if(be)ev.push({t:be,k:'brkend',l:`${b.name||'Break'} ended · ${Math.round((be-bs)/6e4)} min`})});if(e.brkStart)ev.push({t:e.brkStart,k:'brk',l:`${e.brkName||'Break'} started`});if(e.out)ev.push({t:e.out,k:'out',l:'Clocked out'})});return ev.sort((a,b)=>a.t-b.t)}
+const greet=()=>{const h=new Date().getHours();return h<12?'Good morning':h<18?'Good afternoon':'Good evening'};
+function clockButtons(big){const st=status(S.me);const c=big?'sc-btn':'btn';
+ if(st==='out')return`<button class="${c} pri" data-act="clockIn">${ic('play',big?22:15)} Clock in</button>`;
+ if(st==='in')return`<button class="${c} brk" data-act="startBreak">${ic('coffee',big?22:15)} Start break</button><button class="${c} out" data-act="clockOut">${ic('stop',big?20:13)} Clock out</button>`;
+ return`<button class="${c} pri" data-act="endBreak">${ic('play',big?22:15)} End break</button><button class="${c} out" data-act="clockOut">${ic('stop',big?20:13)} Clock out</button>`}
+function statusLine(){const st=status(S.me),e=openEntry(S.me);if(st==='out'){const last=S.entries.filter(x=>x.member===S.me&&x.out).sort((a,b)=>b.out-a.out)[0];return last?`Last clocked out ${tsYmd(last.out)===today()?'today':fmtDate(tsYmd(last.out))} at ${tsHM(last.out)}`:'You haven’t clocked in yet'}
+ if(st==='break')return`${esc(e.brkName||'Break')} since ${tsHM(e.brkStart)}`;return`Clocked in at ${tsHM(e.in)}`}
+
+/* ---------- Home ---------- */
+VIEWS.sHome=()=>{const m=me(),T=today(),ws=weekStartOf(T),we=addDays(ws,6);const st=status(S.me),e=openEntry(S.me);const sh=myShifts(T,T);const nxt=myShifts(addDays(T,1),addDays(T,14)).slice(0,4);
+ const tk=S.tasks.filter(t=>t.assignee===S.me&&t.date===T);const tkOpen=tk.filter(t=>t.status!=='done');const wk=entriesFor(S.me,ws,we).reduce((a,x)=>a+eDur(x),0);const ap=apOf(S.me,ws);const nd=S.docs.filter(d=>d.member===S.me&&!d.viewedAt);
+ return`<div class="s-wrap"><div class="s-hero card"><div><div class="mut small">${fmtDate(T,{weekday:'long',day:'numeric',month:'long'})}</div><h1 class="s-h1">${greet()}, ${esc(m.name.split(' ')[0])}</h1><div class="mut">${sh.length?`Today: ${sh.map(shiftLine).join(', ')}`:'No shift on the rota today'}</div></div>
+ <div class="s-hero-clock"><span class="s-pill ${st}">${st==='in'?'Working':st==='break'?'On break':'Clocked out'}</span><div class="s-timer" ${e?`data-live-since="${e.brkStart||e.in}"`:''}>${e?HMS(Date.now()-(e.brkStart||e.in)):'--:--:--'}</div><div class="mut small">${statusLine()}</div><div class="row" style="justify-content:center;margin-top:10px">${clockButtons(false)}</div></div></div>
+ ${nd.length?`<button class="s-alert card" data-act="go" data-v="sP45">${ic('doc',18)}<span>You have ${nd.length===1?'a new P45':nd.length+' new P45s'} to view</span>${ic('right',16)}</button>`:''}
+ <div class="s-stats"><div class="s-stat card"><span class="mut small">Today</span><b data-live-total="${T}">${HM(dayTotal(S.me,T))}</b></div><div class="s-stat card"><span class="mut small">This week</span><b>${HM(wk)}</b></div><div class="s-stat card"><span class="mut small">Tasks left today</span><b>${tkOpen.length}</b></div><div class="s-stat card"><span class="mut small">Timesheet</span><b class="small" style="font-size:15px">${ap?.status==='approved'?'Approved':ap?.status==='rejected'?'Needs changes':'Open'}</b></div></div>
+ <div class="s-grid"><div class="card"><div class="s-ch"><b>Today's tasks</b><button class="btn sm ghost" data-act="go" data-v="sTasks">View all</button></div>${tk.length?tk.slice(0,5).map(taskRow).join(''):`<div class="s-empty">${ic('task',22)}<span>No tasks for today</span></div>`}</div>
+ <div class="card"><div class="s-ch"><b>Upcoming shifts</b><button class="btn sm ghost" data-act="go" data-v="sSheets">Timesheets</button></div>${nxt.length?nxt.map(s=>`<div class="s-row"><div class="s-date"><b>${fmtDate(s.date,{day:'numeric'})}</b><span>${fmtDate(s.date,{weekday:'short'})}</span></div><div style="flex:1;min-width:0"><b>${s.start}–${s.end}</b><div class="mut small">${[needName(s.need),locName(s.location)].filter(Boolean).map(esc).join(' · ')||'Shift'}</div></div></div>`).join(''):`<div class="s-empty">${ic('cal',22)}<span>No shifts published yet</span></div>`}</div></div></div>`};
+
+/* ---------- Time clock ---------- */
+VIEWS.sClock=()=>{const T=today(),st=status(S.me),e=openEntry(S.me);const sh=myShifts(T,T);const ev=punches(S.me,T);const brk=entriesFor(S.me,T,T).reduce((a,x)=>a+eBreak(x),0);
+ const now=new Date();return`<div class="s-wrap"><div class="card s-clock"><div class="s-now" id="sNow">${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div><div class="mut">${fmtDate(T,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+ <span class="s-pill ${st}" style="margin-top:16px">${st==='in'?'Working':st==='break'?'On break':'Clocked out'}</span><div class="mut small" style="margin-top:6px">${statusLine()}${st!=='out'?` · <span data-live-since="${e.brkStart||e.in}">${HMS(Date.now()-(e.brkStart||e.in))}</span>`:''}</div>
+ <div class="sc-btns">${clockButtons(true)}</div>${sh.length?`<div class="s-shift">${ic('cal',16)} Today's shift: <b>${sh.map(shiftLine).join(', ')}</b></div>`:`<div class="s-shift mut">${ic('cal',16)} No shift on the rota today</div>`}</div>
+ <div class="s-stats"><div class="s-stat card"><span class="mut small">Worked today</span><b data-live-total="${T}">${HM(dayTotal(S.me,T))}</b></div><div class="s-stat card"><span class="mut small">Breaks today</span><b>${HM(brk)}</b></div><div class="s-stat card"><span class="mut small">Sessions</span><b>${entriesFor(S.me,T,T).length}</b></div></div>
+ <div class="card"><div class="s-ch"><b>Today's activity</b></div>${ev.length?`<div class="s-log">${ev.map(x=>`<div class="s-ev ${x.k}"><span class="s-dot"></span><b>${tsHM(x.t)}</b><span>${esc(x.l)}</span></div>`).join('')}</div>`:`<div class="s-empty">${ic('clock',22)}<span>Clock in to start your day</span></div>`}</div></div>`};
+
+/* ---------- Tasks ---------- */
+U.sTk=U.sTk||'today';
+function taskRow(t){const cl=t.checklist||[];const dn=cl.filter(c=>c.done).length;return`<div class="s-task ${t.status}"><button class="s-check ${t.status==='done'?'on':''}" data-act="sTaskDone" data-id="${t.id}" aria-label="${t.status==='done'?'Mark as not done':'Mark as done'}">${t.status==='done'?ic('check',14):''}</button><div style="flex:1;min-width:0" data-act="taskOpen" data-id="${t.id}"><b>${esc(t.title)}</b><div class="mut small">${[t.time,t.date!==today()?fmtDate(t.date):'',locName(t.location),cl.length?`${dn}/${cl.length} steps`:''].filter(Boolean).map(esc).join(' · ')}</div></div>${t.priority==='high'?'<span class="chip red">High</span>':''}${t.status==='doing'?'<span class="chip amber">In progress</span>':''}</div>`}
+VIEWS.sTasks=()=>{const T=today();ensureRecurring(T);const mine=S.tasks.filter(t=>t.assignee===S.me);const sets={today:mine.filter(t=>t.date===T),upcoming:mine.filter(t=>t.date>T&&t.status!=='done'),done:mine.filter(t=>t.status==='done').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).slice(0,30)};
+ const list=sets[U.sTk].sort((a,b)=>(a.date+(a.time||'99')).localeCompare(b.date+(b.time||'99')));const done=sets.today.filter(t=>t.status==='done').length;
+ return`<div class="s-wrap"><div class="tabs s-tabs">${[['today','Today'],['upcoming','Upcoming'],['done','Done']].map(([k,l])=>`<button class="${U.sTk===k?'on':''}" data-act="sTkTab" data-v="${k}">${l}<span class="cnt">${sets[k].length}</span></button>`).join('')}</div>
+ ${U.sTk==='today'&&sets.today.length?`<div class="card pad s-prog"><div class="row between"><b>${done} of ${sets.today.length} done</b><span class="mut small">${fmtDate(T,{weekday:'long',day:'numeric',month:'short'})}</span></div><div class="s-bar"><span style="width:${Math.round(done/sets.today.length*100)}%"></span></div></div>`:''}
+ <div class="card">${list.length?list.map(t=>taskRow(t)+(U.sTk!=='done'&&t.status!=='done'?`<div class="s-task-acts">${t.status==='todo'?`<button class="btn sm" data-act="sTaskStart" data-id="${t.id}">${ic('play',13)} Start</button>`:''}<button class="btn sm" data-act="taskOpen" data-id="${t.id}">Details</button></div>`:'')).join(''):`<div class="s-empty">${ic('task',24)}<span>${U.sTk==='today'?'No tasks for today. Your manager assigns tasks to your shifts.':U.sTk==='upcoming'?'Nothing coming up yet':'No finished tasks yet'}</span></div>`}</div></div>`};
+A.sTkTab=el=>{U.sTk=el.dataset.v;render()};
+A.sTaskStart=el=>{const t=S.tasks.find(x=>x.id===el.dataset.id);if(!t)return;t.status='doing';save();render();toast('Task started')};
+A.sTaskDone=(el,ev)=>{ev?.stopPropagation();const t=S.tasks.find(x=>x.id===el.dataset.id);if(!t)return;if(t.status==='done'){t.status='todo';t.doneAt=null;save();render();return toast('Task reopened')}
+ const left=(t.checklist||[]).filter(c=>!c.done).length;const fin=()=>{t.status='done';t.doneAt=Date.now();t.doneBy=S.me;(t.checklist||[]).forEach(c=>c.done=true);if(t.createdBy&&t.createdBy!==S.me)notify('task',`${me().name.split(' ')[0]} finished “${t.title}”`);save();A.closeModal();render();toast('Task done')};
+ if(left)return ask(`${left} checklist step${left>1?'s are':' is'} not ticked yet. Mark the whole task as done?`,fin,'Mark done');fin()};
+
+/* ---------- Timesheets ---------- */
+U.sWs=U.sWs||weekStartOf(today());
+VIEWS.sSheets=()=>{const ws=U.sWs,we=addDays(ws,6);const days=[...Array(7)].map((_,i)=>addDays(ws,i));const ap=apOf(S.me,ws);const{reg,ot}=splitOT(S.me,ws,we);const total=reg+ot;const brkT=entriesFor(S.me,ws,we).reduce((a,x)=>a+eBreak(x),0);
+ const rows=days.map(d=>{const es=entriesFor(S.me,d,d).sort((a,b)=>a.in-b.in);const sh=myShifts(d,d);const t=dayTotal(S.me,d);const b=es.reduce((a,x)=>a+eBreak(x),0);const isT=d===today();
+  return`<div class="s-ts-row ${isT?'today':''} ${!es.length&&!sh.length?'empty':''}"><div class="s-date"><b>${fmtDate(d,{day:'numeric'})}</b><span>${fmtDate(d,{weekday:'short'})}</span></div>
+  <div class="s-ts-main"><div class="s-ts-sh mut small">${sh.length?`Shift ${sh.map(s=>s.start+'–'+s.end).join(', ')}`:'No shift'}</div>${es.length?es.map(e=>`<div><b>${tsHM(e.in)} – ${e.out?tsHM(e.out):'now'}</b>${e.manual?' <span class="chip">Edited</span>':''}</div>`).join(''):`<div class="mut small">${holidayName(d)||(d>today()?'':'No time recorded')}</div>`}</div>
+  <div class="s-ts-num"><span class="mut small">Break</span><b>${b?HM(b):'–'}</b></div><div class="s-ts-num"><span class="mut small">Hours</span><b>${t?HM(t):'–'}</b></div></div>`}).join('');
+ return`<div class="s-wrap"><div class="row between s-wk"><div class="row" style="gap:6px"><button class="icon-btn" data-act="sWk" data-n="-7" aria-label="Previous week">${ic('left')}</button><b>${fmtDate(ws,{day:'numeric',month:'short'})} – ${fmtDate(we,{day:'numeric',month:'short',year:'numeric'})}</b><button class="icon-btn" data-act="sWk" data-n="7" aria-label="Next week">${ic('right')}</button>${ws!==weekStartOf(today())?`<button class="btn sm" data-act="sWk" data-n="0">This week</button>`:''}</div>
+ <button class="btn sm" data-act="sExport">${ic('download',15)} Download</button></div>
+ <div class="s-stats"><div class="s-stat card"><span class="mut small">Total hours</span><b>${HM(total)}</b></div><div class="s-stat card"><span class="mut small">Regular</span><b>${HM(reg)}</b></div><div class="s-stat card"><span class="mut small">Overtime</span><b>${HM(ot)}</b></div><div class="s-stat card"><span class="mut small">Status</span><b style="font-size:15px">${ap?.status==='approved'?`<span class="chip green">Approved</span>`:ap?.status==='rejected'?`<span class="chip red">Needs changes</span>`:`<span class="chip">Awaiting approval</span>`}</b></div></div>
+ <div class="card">${rows}<div class="s-ts-row s-ts-tot"><div class="s-date"></div><div class="s-ts-main"><b>Week total</b></div><div class="s-ts-num"><b>${brkT?HM(brkT):'–'}</b></div><div class="s-ts-num"><b>${HM(total)}</b></div></div></div>
+ <p class="small mut" style="text-align:center">Something wrong? Ask your manager to correct your timesheet before it's approved.</p></div>`};
+const holidayName=d=>(S.timeoff.holidays||[]).find(h=>h.date===d)?.name||'';
+A.sWk=el=>{const n=+el.dataset.n;U.sWs=n?addDays(U.sWs,n):weekStartOf(today());render()};
+A.sExport=()=>{const ws=U.sWs,we=addDays(ws,6);const rows=[['Date','Clock in','Clock out','Break (min)','Hours']];entriesFor(S.me,ws,we).sort((a,b)=>a.in-b.in).forEach(e=>rows.push([tsYmd(e.in),tsHM(e.in),e.out?tsHM(e.out):'',Math.round(eBreak(e)/6e4),(eDur(e)/36e5).toFixed(2)]));download(`timesheet-${me().name.replace(/\s+/g,'-').toLowerCase()}-${ws}.csv`,toCSV(rows));toast('Timesheet downloaded')};
+
+/* ---------- P45s (staff) ---------- */
+function docUrl(d){const b=atob(d.data.split(',')[1]);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return URL.createObjectURL(new Blob([u],{type:'application/pdf'}))}
+VIEWS.sP45=()=>{const ds=S.docs.filter(d=>d.member===S.me&&d.type==='P45').sort((a,b)=>b.uploadedAt-a.uploadedAt);
+ return`<div class="s-wrap">${ds.length?`<div class="s-docs">${ds.map(d=>`<div class="card s-doc"><div class="s-doc-ic">${ic('doc',26)}</div><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>P45 · tax year ${esc(d.taxYear)}</b>${d.viewedAt?'':'<span class="chip blue">New</span>'}</div><div class="mut small">Leaving date ${fmtDate(d.leaveDate,{day:'numeric',month:'long',year:'numeric'})} · added ${fmtDate(tsYmd(d.uploadedAt),{day:'numeric',month:'short',year:'numeric'})}</div></div><div class="row s-doc-acts"><button class="btn sm" data-act="sDocView" data-id="${d.id}">${ic('eye',15)} View</button><button class="btn sm pri" data-act="sDocDl" data-id="${d.id}">${ic('download',15)} Download</button></div></div>`).join('')}</div>`:`<div class="card s-empty" style="padding:40px 20px">${ic('doc',30)}<b>No P45s yet</b><span>When your employer adds your P45, it appears here to view and download.</span></div>`}
+ <div class="card pad s-info"><b>About your P45</b><p class="mut small" style="margin:6px 0 0">Your employer gives you a P45 when you stop working for them. It shows your pay and the tax taken off so far this tax year. Give parts 2 and 3 to your next employer and keep part 1A for your records.</p></div></div>`};
+const markViewed=d=>{if(!d.viewedAt){d.viewedAt=Date.now();save();render()}};
+A.sDocView=el=>{const d=S.docs.find(x=>x.id===el.dataset.id);if(!d)return;window.open(docUrl(d),'_blank');markViewed(d)};
+A.sDocDl=el=>{const d=S.docs.find(x=>x.id===el.dataset.id);if(!d)return;const a=document.createElement('a');a.href=docUrl(d);a.download=d.name||'P45.pdf';document.body.appendChild(a);a.click();a.remove();markViewed(d);toast('P45 downloaded')};
+
+/* ---------- P45s (admin: upload and manage) ---------- */
+NAV.push(['p45s','P45s','doc']);NAV_SET.splice(1,0,'p45s');TITLES.p45s='P45s';
+VIEWS.p45s=()=>{const ds=S.docs.filter(d=>d.type==='P45').sort((a,b)=>b.uploadedAt-a.uploadedAt);
+ return`<div class="row between" style="margin-bottom:14px;flex-wrap:wrap;gap:10px"><p class="mut" style="margin:0;flex:1;min-width:220px">Upload a P45 for a member. They see it on their P45s page when they sign in.</p><button class="btn pri" data-act="p45New">${ic('upload',16)} Upload P45</button></div>
+ <div class="card" style="overflow-x:auto">${ds.length?`<table class="t p45t"><thead><tr><th>Member</th><th>Tax year</th><th class="hide-sm">Leaving date</th><th class="hide-sm">Added</th><th>Seen by member</th><th></th></tr></thead><tbody>${ds.map(d=>{const m=mem(d.member);return`<tr><td><div class="row" style="flex-wrap:nowrap"><div class="av" style="background:${m?.color||'#999'}">${esc(initials(m?.name))}</div>${esc(m?.name||'Removed member')}</div></td><td>${esc(d.taxYear)}</td><td class="hide-sm">${fmtDate(d.leaveDate,{day:'numeric',month:'short',year:'numeric'})}</td><td class="hide-sm">${fmtDate(tsYmd(d.uploadedAt),{day:'numeric',month:'short'})}</td><td>${d.viewedAt?`<span class="chip green">Seen<span class="hide-sm">&nbsp;${fmtDate(tsYmd(d.viewedAt),{day:'numeric',month:'short'})}</span></span>`:'<span class="chip">Not yet</span>'}</td><td style="text-align:right;white-space:nowrap"><button class="btn sm ghost" data-act="sDocView" data-id="${d.id}" title="View">${ic('eye',15)}</button><button class="btn sm ghost" data-act="p45Del" data-id="${d.id}" title="Delete">${ic('trash',15)}</button></td></tr>`}).join('')}</tbody></table>`:`<div class="s-empty" style="padding:36px">${ic('doc',28)}<span>No P45s uploaded yet</span></div>`}</div>`};
+A.p45New=()=>{const lv=today();D={kind:'p45',member:'',leaveDate:lv,file:null};openDrawer('Upload P45',`<p class="mut" style="margin-top:14px">The member can view and download it from their P45s page.</p>${fld('Member *',drSel('member',S.members.filter(m=>!m.archived||true),'',{none:'Select a member'}))}${fld('Leaving date *',`<input class="inp" type="date" value="${lv}" data-dr="leaveDate">`)}${fld('P45 file (PDF, up to 2 MB) *',`<input class="inp" type="file" accept="application/pdf,.pdf" id="p45File">`)}`,`<button class="btn" data-act="closeDrawer">Cancel</button><button class="btn pri" data-act="p45Save">Upload</button>`)};
+A.p45Save=()=>{if(!D.member)return toast('Choose a member','bad');const f=$('#p45File').files[0];if(!f)return toast('Choose a PDF file','bad');if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name))return toast('The file must be a PDF','bad');if(f.size>2*1024*1024)return toast('That file is over 2 MB','bad');
+ const d0={...D};const r=new FileReader();r.onload=()=>{S.docs.push({id:uid(),member:d0.member,type:'P45',taxYear:taxYearOf(d0.leaveDate),leaveDate:d0.leaveDate,name:f.name,size:f.size,data:r.result,uploadedAt:Date.now(),uploadedBy:S.me,viewedAt:null});save();closeDrawer();render();toast(`P45 added for ${mem(d0.member).name}`)};r.readAsDataURL(f)};
+A.p45Del=el=>ask('Delete this P45? The member will no longer see it.',()=>{S.docs=S.docs.filter(d=>d.id!==el.dataset.id);save();render();toast('P45 deleted')});
+
+/* ---------- live timers ---------- */
+setInterval(()=>{if(!isStaff()||!realUser())return;document.querySelectorAll('[data-live-since]').forEach(x=>x.textContent=HMS(Date.now()-+x.dataset.liveSince));document.querySelectorAll('[data-live-total]').forEach(x=>x.textContent=HM(dayTotal(S.me,x.dataset.liveTotal)));const n=$('#sNow');if(n)n.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})},1000);
+
+render();
+
 </script>
 </body>
 </html>
