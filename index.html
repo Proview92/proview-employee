@@ -2191,6 +2191,9 @@ if(!S.payslipsSeeded){S.payslipsSeeded=true;const m=mem('m4');if(m){[1,2].forEac
 const _dcoS=doClockOut;doClockOut=function(mid){const e=openEntry(mid);if(e&&e.brkStart)e.breaks=[...(e.breaks||[]),{name:e.brkName||'Break',start:e.brkStart,end:Date.now(),paid:!!e.brkPaid}];return _dcoS(mid)};
 /* demo-only: open entries from the sample data (no source) are kept current so nobody shows an all-day break */
 (function(){const N=Date.now();let ch=false;if(!S.demoTagged){S.entries.forEach(e=>{e.demo=true});S.demoTagged=true;ch=true}S.entries.forEach(e=>{if(e.out||!e.demo)return;if(tsYmd(e.in)!==today()||N-e.in>10*36e5){e.in=N-(2+((e.member.charCodeAt(1)||3)%3))*36e5;ch=true}if(e.brkStart&&N-e.brkStart>45*6e4){e.brkStart=N-14*6e4;ch=true}if(e.breaks)e.breaks=e.breaks.filter(b=>(b.start??b.s)>=e.in)});if(ch)save()})();
+/* owner account for altun@proviewtech.co.uk (temporary password, must be changed at first sign-in) */
+(function(){const em='altun@proviewtech.co.uk';if(S.members.some(m=>(m.email||'').toLowerCase()===em))return;const sc=(S.schedules.find(x=>x.isDefault)||S.schedules[0])?.id||'';
+ S.members.push({id:'m'+uid(),name:'Altun',role:'Owner',group:S.groups[0]?.id||'',schedule:sc,rate:0,billRate:0,email:em,phone:'',pin:String(1000+Math.floor(Math.random()*9000)),pwHash:'59bbfbdeb42e55f2a084dc0a9fdddfa1381d34479c6ee2d9e778c9c70fc21186',mustChange:true,color:'#4a6cd0',archived:false,joined:today(),qr:uid()+uid()});save()})();
 /* ---------- sign-in screen (Proview Bookings style) ---------- */
 (function(){const l=document.createElement('div');l.id='login';document.body.appendChild(l);const t=document.createElement('nav');t.id='tabbar';t.setAttribute('aria-label','Main menu');document.body.appendChild(t)})();
 let LG={id:'',show:false,err:'',keep:true};
@@ -2256,7 +2259,9 @@ A.doLogin=async()=>{const id=$('#lgId').value.trim().toLowerCase(),pw=$('#lgPw')
  const ok=m&&(m.pwHash?(await sha(pw))===m.pwHash:pw===String(m.pin||''));
  if(!ok){LG.err='That email or password isn’t right. Try again.';renderLogin();$('#lgPw').focus();return}
  LG={id:'',show:false,err:'',keep:true};try{(LG.keep?localStorage:sessionStorage).setItem(SESSION_KEY,m.id)}catch(e){}
- S.me=m.id;save();U.view=m.role==='Member'?'sHome':'dashboard';render();toast(`Welcome, ${m.name.split(' ')[0]}`)};
+ S.me=m.id;save();U.view=m.role==='Member'?'sHome':'dashboard';render();toast(`Welcome, ${m.name.split(' ')[0]}`);if(m.mustChange)setTimeout(A.forcePw,300)};
+A.forcePw=()=>openModal(`<div class="pad"><b style="font-size:17px">Choose your own password</b><p class="mut" style="margin:6px 0 4px">You signed in with a temporary password. Set a new one to keep your account safe.</p><label class="f">New password</label><input class="inp" type="password" id="fpw1" autocomplete="new-password" placeholder="At least 8 characters"><label class="f">Confirm new password</label><input class="inp" type="password" id="fpw2" autocomplete="new-password"><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn pri" data-act="forcePwSave">Save password</button></div></div>`,420);
+A.forcePwSave=async()=>{const a=$('#fpw1').value,b=$('#fpw2').value;if(a.length<8)return toast('Use at least 8 characters','bad');if(a!==b)return toast('Passwords don\u2019t match','bad');const m=realUser()||me();m.pwHash=await sha(a);delete m.mustChange;save();A.closeModal();toast('Password saved')};
 A.signOut=()=>{try{localStorage.removeItem(SESSION_KEY);sessionStorage.removeItem(SESSION_KEY)}catch(e){}closeDrawer();A.closeModal();A.navClose?.();render()};
 A.backToAdmin=()=>{const r=realUser();if(!r)return;S.me=r.id;save();U.view='dashboard';render();toast('Back to the admin view')};
 
