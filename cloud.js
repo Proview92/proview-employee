@@ -390,12 +390,8 @@
 
   // A new company, with me as the owner. Optionally brings the company already in this browser.
   async function createCompany(name, company) {
-    const local = LOCAL_S && hasRealLocalData(LOCAL_S) ? LOCAL_S : null;
-    let useLocal = false;
-    if (local) {
-      setLoading('');
-      useLocal = await choose(`<b style="font-size:17px">Bring your existing data?</b><p class="mut" style="margin:8px 0 0">This browser already has the company <b>${esc(local.org?.name || '')}</b> with ${local.members?.length || 0} people and ${local.entries?.length || 0} clock-ins. Do you want to move it into your new account?</p>`, 'Start fresh', 'Move it in');
-    }
+    // a new company always starts empty, with only the person who created it
+    const local = null, useLocal = false;
     setLoading('Setting up your company…');
     const email = O.user.email.toLowerCase();
     let s, myId;
@@ -748,12 +744,8 @@
   document.head.appendChild(css);
 
   /* ---------------- start ---------------- */
-  // remember any company kept in this browser before going online (offered when creating a company)
-  const LOCAL_S = (() => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } })();
-  function hasRealLocalData(s) {
-    if (!s || !Array.isArray(s.members)) return false;
-    return (s.entries || []).some((e) => !e.demo) || (s.org?.name && s.org.name !== 'Proview Tech') || (s.docs || []).some((d) => !/sample/i.test(d.name || ''));
-  }
+  // the online version never uses data kept in this browser by the old browser-only version: remove it
+  try { localStorage.removeItem(KEY); localStorage.removeItem('pe-session'); sessionStorage.removeItem('pe-session'); } catch (e) {}
 
   S = finishState(stateFromRows([]));
   try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
