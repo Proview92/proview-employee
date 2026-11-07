@@ -604,7 +604,7 @@
     }
   };
 
-  const PV_ACCOUNT = 'https://license.proviewcrm.co.uk/account/';
+  const PV_ACCOUNT = 'https://dashboard.proviewcrm.co.uk/';
   A.pvAccount = () => { location.href = PV_ACCOUNT + '?app=employee&return=' + encodeURIComponent(HERE + location.search); };
   // Arrived from the Proview account page with a signed hand-off: swap it for a normal session.
   async function pvSso(token) {
