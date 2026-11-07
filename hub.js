@@ -16,6 +16,7 @@
     page: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   };
   const svg = (k, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG[k] || k}</svg>`;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -34,6 +35,10 @@
 @keyframes hubPulse{50%{opacity:.35}}
 .hub-badge{position:absolute;top:0;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d92d20;color:#fff;font-size:10.5px;font-weight:700;line-height:16px;text-align:center;box-sizing:border-box}
 .hub-badge:empty,.hub-badge.hidden{display:none}
+.pv-dash{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:10px;border:1px solid #e4e2dc;background:#fff;color:#17171c!important;font:inherit;font-weight:600;font-size:14px;text-decoration:none!important;flex:none;white-space:nowrap}
+.pv-dash:hover{background:#f3f2ee}
+.pv-dash svg{width:17px!important;height:17px!important}
+@media (max-width:700px){.pv-dash{width:34px;height:34px;padding:0;justify-content:center}.pv-dash span{display:none}}
 @media (max-width:700px){.hdr-cap{padding:2px;gap:0}.hdr-cap>button,.hdr-cap>a{width:30px;min-width:30px;height:30px}.hdr-dot{margin:0 6px}}
 .hub-bg{position:fixed;inset:0;background:rgba(20,20,26,.38);z-index:300;display:flex}
 .hub-pal{margin:12vh auto auto;width:min(580px,92vw);background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden;font-size:15px;color:#17171c}
@@ -116,6 +121,15 @@
     b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); onClick(); });
     if (kind === 'chat' || kind === 'inbox') b.appendChild(badge(kind));
     return b;
+  }
+  /** "Dashboard" link back to dashboard.proviewcrm.co.uk (owners, admins and managers only: pass show=false for others). */
+  function dashLink(show) {
+    if (!show) return null;
+    const a = document.createElement('a');
+    a.className = 'pv-dash'; a.href = 'https://dashboard.proviewcrm.co.uk/';
+    a.title = 'Proview dashboard: all your Proview apps'; a.setAttribute('aria-label', 'Proview dashboard');
+    a.innerHTML = svg('grid') + '<span>Dashboard</span>';
+    return a;
   }
   /** Build the tray: [status dot, search, chat, inbox, bell]. bellEl is the app's own bell button. */
   function tray({ dot, bell }) {
@@ -253,6 +267,6 @@
   window.PVHub = {
     init(adapter) { A = adapter; paint(); },
     adapter: () => A,
-    tray, paint, chatChanged, openSearch, openChat, openInbox, close, svg, initials,
+    tray, dashLink, paint, chatChanged, openSearch, openChat, openInbox, close, svg, initials,
   };
 })();
