@@ -89,10 +89,22 @@
     const people = S.members.filter((m) => !m.archived && !m.placeholder);
     const soon = people.filter((m) => ['expiring', 'grace'].includes(licState(myLic(m.id)).state));
     const gone = people.filter((m) => ['none', 'expired'].includes(licState(myLic(m.id)).state));
-    const buyBtn = O.asMaster ? '' : `<button class="btn sm pri" data-act="peBuy" style="margin-left:auto;flex:none">Buy / renew online</button>`;
-    if (!soon.length && !gone.length) return O.asMaster ? html : `<div class="card pad lic-banner" role="status" style="align-items:center">${ic('shield', 18)}<div class="small">${plural(people.length, 'staff licence')} active.</div>${buyBtn}</div>` + html;
-    const names = (l) => l.slice(0, 4).map((m) => esc(m.name.split(' ')[0])).join(', ') + (l.length > 4 ? ` and ${l.length - 4} more` : '');
-    return `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}Buy or renew online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a></div></div>${buyBtn}</div>` + html;
+    // owners and admins buy here; the master admin manages licences on the licence site
+    const buyBtn = O.asMaster
+      ? `<a class="btn sm pri lic-btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">${ic('shield', 15)} Manage licences</a>`
+      : `<button class="btn sm pri lic-btn" data-act="peBuy">${ic('shield', 15)} Buy or renew licences</button>`;
+    let banner;
+    if (!soon.length && !gone.length) {
+      banner = `<div class="card pad lic-banner ok" role="status">${ic('shield', 18)}<div class="lic-txt small">${plural(people.length, 'staff licence')} active.</div>${buyBtn}</div>`;
+    } else {
+      const names = (l) => l.slice(0, 4).map((m) => esc(m.name.split(' ')[0])).join(', ') + (l.length > 4 ? ` and ${l.length - 4} more` : '');
+      banner = `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}${O.asMaster ? '' : 'Renew online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div></div>${buyBtn}</div>`;
+    }
+    // the Day / Week / Month bar sits flush at the top of the page, so the banner goes just below it
+    const t = document.createElement('template'); t.innerHTML = html;
+    const bar = t.content.querySelector('.sublinks');
+    if (bar) { bar.insertAdjacentHTML('afterend', banner); return t.innerHTML; }
+    return banner + html;
   };
 
   // owners and admins: buy or renew staff licences online (prices and Stripe links come from the Proview licence portal)
@@ -291,6 +303,6 @@
   document.head.appendChild(css3);
 
   const css2 = document.createElement('style');
-  css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:flex-start;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:14px}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
+  css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:16px}.lic-banner>svg{flex:none;align-self:flex-start;margin-top:2px}.lic-banner .lic-txt{flex:1;min-width:200px}.lic-banner .lic-btn{flex:none;margin-left:auto;text-decoration:none}.lic-banner.ok{border-color:var(--line);background:var(--card);color:var(--ink)}@media (max-width:700px){.lic-banner .lic-btn{width:100%;justify-content:center;margin-left:0;min-height:40px}}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
   document.head.appendChild(css2);
 })();
