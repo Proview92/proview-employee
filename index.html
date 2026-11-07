@@ -852,6 +852,16 @@ html .side .nav .nav-group .rail-ic{display:block!important}html .side .nav .nav
  html .side .nav>a .ext{display:none!important}
  html .side .nav .slbl,html .side .nav>a>span:not(.bell-dot):not(.cnt){display:block!important;font-size:10px!important;line-height:12px!important;font-weight:500!important;letter-spacing:-.1px!important;max-width:58px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap;text-align:center}
 }
+
+/* phone: the extra rail items (In/out, Kiosk, Dark) use the same 50 x 52 button */
+@media (max-width:700px){
+ html .side .nav .mobile-only{display:flex!important;flex-direction:column!important;align-items:center!important;width:100%!important;margin:0!important;padding:0!important}
+ html .side .nav .mobile-only .nav-div{display:none!important}
+ html .side .nav .mobile-only>button{display:flex!important;width:50px!important;min-width:0!important;max-width:50px!important;height:52px!important;margin:0 auto!important;padding:0 1px!important;border-radius:9px!important;gap:4px!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;box-sizing:border-box!important}
+ html .side .nav .mobile-only>button svg{width:18px!important;height:18px!important;margin:0!important;flex:none}
+ html .side .nav .mobile-only>button .lbl,html .side .nav .mobile-only>button .cnt{display:none!important}
+ html .side .nav .mobile-only>button .slbl{display:block!important;font-size:10px!important;line-height:12px!important;font-weight:500!important;letter-spacing:-.1px!important;white-space:nowrap;text-align:center}
+}
 </style>
 <script src="config.js"></script>
 </head>
@@ -2192,7 +2202,7 @@ ICON.burger='<path d="M4 6h16M4 12h16M4 18h16"/>';
 const _renderTopM=renderTop;renderTop=function(){_renderTopM();$('#top').insertAdjacentHTML('afterbegin',`<button class="icon-btn menu-btn" data-act="navToggle" title="Menu" aria-label="Open menu">${ic('burger',20)}</button>`)};
 A.navToggle=()=>{$('#app').classList.toggle('navopen');$('#navScrim').classList.toggle('show',$('#app').classList.contains('navopen'))};
 A.navClose=()=>{$('#app').classList.remove('navopen');$('#navScrim').classList.remove('show')};
-const _renderNavM=renderNav;renderNav=function(){_renderNavM();$('#nav').insertAdjacentHTML('beforeend',`<div class="mobile-only"><div class="nav-div"></div><button data-act="mWho">${ic('people',19)}<span class="lbl">Who's in/out</span><span class="cnt">${activeMembers().filter(m=>status(m.id)!=='out').length}</span></button><button data-act="mKiosk">${ic('kiosk',19)}<span class="lbl">Open kiosk</span></button><button data-act="mDark">${ic('moon',19)}<span class="lbl">${S.settings.dark?'Light':'Dark'} mode</span></button></div>`)};
+const _renderNavM=renderNav;renderNav=function(){_renderNavM();$('#nav').insertAdjacentHTML('beforeend',`<div class="mobile-only"><div class="nav-div"></div><button data-act="mWho">${ic('people',19)}<span class="lbl">Who's in/out</span><span class="cnt">${activeMembers().filter(m=>status(m.id)!=='out').length}</span><span class="slbl">In/out</span></button><button data-act="mKiosk">${ic('kiosk',19)}<span class="lbl">Open kiosk</span><span class="slbl">Kiosk</span></button><button data-act="mDark">${ic('moon',19)}<span class="lbl">${S.settings.dark?'Light':'Dark'} mode</span><span class="slbl">${S.settings.dark?'Light':'Dark'}</span></button></div>`)};
 A.mWho=()=>{A.navClose();A.whoDrawer()};A.mKiosk=()=>{A.navClose();A.kiosk()};A.mDark=()=>{S.settings.dark=!S.settings.dark;save();render()};
 const _goM=A.go;A.go=el=>{A.navClose();_goM(el)};
 const _profM=A.myProfile;A.myProfile=()=>{A.navClose();_profM()};
