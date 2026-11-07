@@ -777,6 +777,7 @@ html .app .side .side-me.side-me,html .side .side-foot [data-act=logout],html .s
 .side .nav>a>span:not(.bell-dot),.side .nav>button .lbl{font-size:14px!important}
 .side .nav-sec,.side .nav-sep,.side .nav .nav-group{padding-top:10px!important;padding-bottom:3px!important;line-height:13px!important;min-height:0!important;height:auto!important}
 }
+.hdr-cap .pe-sync{margin:0 9px!important}@media (max-width:700px){.hdr-cap .pe-sync{margin:0 6px!important}}#top .top-me{border-left:0!important;padding-left:0!important;margin-left:8px!important}@media (max-width:700px){#top .top-me{margin-left:4px!important}}
 </style>
 <script src="config.js"></script>
 </head>
@@ -887,7 +888,7 @@ function load(){try{const r=localStorage.getItem(KEY);if(r){S=upgrade(JSON.parse
 const ROLES=['Owner','Admin','Manager','Member'];
 const UK_HOLIDAYS=[['2026-01-01',"New Year's Day"],['2026-04-03','Good Friday'],['2026-04-06','Easter Monday'],['2026-05-04','Early May bank holiday'],['2026-05-25','Spring bank holiday'],['2026-08-31','Summer bank holiday'],['2026-12-25','Christmas Day'],['2026-12-28','Boxing Day (substitute day)'],['2027-01-01',"New Year's Day"],['2027-03-26','Good Friday'],['2027-03-29','Easter Monday'],['2027-05-03','Early May bank holiday'],['2027-05-31','Spring bank holiday'],['2027-08-30','Summer bank holiday'],['2027-12-27','Christmas Day (substitute day)'],['2027-12-28','Boxing Day (substitute day)']];
 
-function defaults(){return{
+function defaults(){return{chat:[],
  org:{name:'Proview Tech',address:'1 Canada Square\nLondon E14 5AB\nUnited Kingdom',currency:'GBP',weekStart:1,logo:'',email:'accounts@proviewtech.co.uk',vat:''},
  me:null,members:[],groups:[],activities:[],projects:[],clients:[],locations:[],schedules:[],entries:[],approvals:{},
  timeoff:{policies:[],requests:[],holidays:[]},invoices:[],notes:[],ai:[],exports:[],setup:{},
@@ -2492,10 +2493,12 @@ render();
 </script>
 <script src="cloud.js"></script>
 <script src="master.js"></script>
+<script src="hub.js"></script>
+<script src="hub-app.js"></script>
 <script>
 function topMe(act){const t=document.getElementById('top'),vc=document.getElementById('venueCard');if(!t)return;const a=vc&&vc.querySelector('.side-av');if(!a)return;t.querySelector('.top-me')?.remove();const nm=vc.querySelector('.side-me-t b')?.textContent||'',sub=vc.querySelector('.side-me-t span')?.textContent||'';const w=document.createElement('div');w.className='top-me';w.innerHTML=`<button class="top-av" title="${esc(nm+(sub?' · '+sub:''))}" aria-label="My account">${esc(a.textContent)}</button><button class="icon-btn top-out" data-act="${act}" title="Sign out" aria-label="Sign out">${ic('logout',18)}</button>`;w.querySelector('.top-av').onclick=e=>{e.stopPropagation();vc.click()};t.appendChild(w)}
 {const _rt=renderTop,_rn=renderNav;renderTop=function(){const r=_rt.apply(this,arguments);topMe('signOut');return r};renderNav=function(){const r=_rn.apply(this,arguments);topMe('signOut');return r}}
-{const _rtC=renderTop;renderTop=function(){const r=_rtC.apply(this,arguments);try{{const t=document.getElementById('top');t&&t.querySelectorAll('.pe-portal,.pe-sync,.clockbox,[data-act=whoDrawer],[data-act=kiosk],:scope>span[style*="width:1px"],:scope>.chip').forEach(e=>e.remove());if(t){const nat=[...t.querySelectorAll(':scope>[data-act=sProfile],:scope>[data-act=signOut]')];if(t.querySelector('.top-me'))nat.forEach(e=>e.remove());else if(nat.length){const w=document.createElement('div');w.className='top-me';const av=t.querySelector(':scope>[data-act=sProfile]'),so=t.querySelector(':scope>[data-act=signOut]');if(av)w.appendChild(av);if(so){so.classList.remove('hide-sm');so.classList.add('top-out');w.appendChild(so)}t.appendChild(w)}}}}catch(e){}return r}}
+{const _rtC=renderTop;renderTop=function(){const r=_rtC.apply(this,arguments);try{{const t=document.getElementById('top');t&&t.querySelectorAll('.pe-portal,.clockbox,[data-act=whoDrawer],[data-act=kiosk],:scope>span[style*="width:1px"],:scope>.chip').forEach(e=>e.remove());if(t){const nat=[...t.querySelectorAll(':scope>[data-act=sProfile],:scope>[data-act=signOut]')];if(t.querySelector('.top-me'))nat.forEach(e=>e.remove());else if(nat.length){const w=document.createElement('div');w.className='top-me';const av=t.querySelector(':scope>[data-act=sProfile]'),so=t.querySelector(':scope>[data-act=signOut]');if(av)w.appendChild(av);if(so){so.classList.remove('hide-sm');so.classList.add('top-out');w.appendChild(so)}t.appendChild(w)}}};try{const t=document.getElementById('top');if(t&&window.PVHub&&!t.querySelector('.hdr-cap')){const dot=t.querySelector('.pe-sync');const bell=t.querySelector(':scope>[data-act=notifs]');const cap=PVHub.tray({dot,bell});const me=t.querySelector('.top-me');if(me)t.insertBefore(cap,me);else t.appendChild(cap)}}catch(e){console.warn(e)}}catch(e){}return r}}
 try{renderNav();renderTop()}catch(e){}
 </script>
 </body>

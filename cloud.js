@@ -68,6 +68,7 @@
     ['audit', (s) => s.audit, (s, v) => (s.audit = v), null],
     ['exports', (s) => s.exports, (s, v) => (s.exports = v), 'by'],
     ['invoices', (s) => s.invoices, (s, v) => (s.invoices = v), null],
+    ['chat', (s) => s.chat, (s, v) => (s.chat = v), 'by'],
   ];
   const OBJECTS = [
     ['org', (s) => s.org, (s, v) => (s.org = v)],
@@ -142,6 +143,7 @@
     if (c === 'exports') return admin || m === O.member;
     if (c === 'invoices') return admin;
     if (c === 'ai') return m === O.member;
+    if (c === 'chat') return m === O.member;
     if (admin) return true;
     const boss = mgr && m && m !== O.member && team.has(m);
     if (['members', 'secrets', 'approvals'].includes(c)) return boss;
@@ -176,7 +178,7 @@
     O.pushing = true; setSync('saving');
     const batch = [...O.queue.values()].slice(0, 200);
     let ok = false;
-    const addOnly = (r) => ['notes', 'audit'].includes(r.coll) && !r.deleted && !O.rows.has(key(r.coll, r.id));
+    const addOnly = (r) => ['notes', 'audit', 'chat'].includes(r.coll) && !r.deleted && !O.rows.has(key(r.coll, r.id));
     const adds = batch.filter(addOnly), ups = batch.filter((r) => !addOnly(r));
     const toBody = (list) => list.map((r) => ({ org_id: O.org, coll: r.coll, id: r.id, member_id: r.member_id, data: r.data, deleted: !!r.deleted }));
     try {
@@ -214,7 +216,7 @@
     const refused = [];
     for (const r of batch) {
       const row = { org_id: O.org, coll: r.coll, id: r.id, member_id: r.member_id, data: r.data, deleted: !!r.deleted };
-      const add = ['notes', 'audit'].includes(r.coll) && !r.deleted && !O.rows.has(key(r.coll, r.id));
+      const add = ['notes', 'audit', 'chat'].includes(r.coll) && !r.deleted && !O.rows.has(key(r.coll, r.id));
       const { error } = add ? await O.sb.from('pe_rows').insert(row) : await O.sb.from('pe_rows').upsert(row, { onConflict: 'org_id,coll,id' });
       if (!error || (add && error.code === '23505')) { done(r); continue; }
       if (!isRefusal(error)) throw error;
@@ -222,7 +224,7 @@
     }
     if (refused.length) {
       // put back the server copy of anything that was refused
-      const msg = refused.map((x) => x.error.message).find((m) => m && !/row-level security/i.test(m));
+      const msg = refused.some((x) => x.r.coll === 'chat') ? 'Team chat isn’t switched on for this business yet.' : refused.map((x) => x.error.message).find((m) => m && !/row-level security/i.test(m));
       toast(msg || 'You don’t have permission to change that, so it was put back.', 'bad');
       await reloadRows(refused.map((x) => x.r));
     }
