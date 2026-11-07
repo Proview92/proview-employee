@@ -176,8 +176,8 @@
     if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
     if (!items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
     const all = O.master && U.view === 'allbiz';
-    const allOpt = O.master ? `<option value="__all" ${all ? 'selected' : ''}>All businesses (${(pickList || items).length})</option>` : '';
-    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    const allOpt = O.master ? `<option value="__all" ${all ? 'selected' : ''}>All sites (${(pickList || items).length})</option>` : '';
+    return `${compact ? '' : `<label class="pv-viewing">${all ? 'Master view' : 'Viewing site'}</label>`}<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
   }
   A.pePickOrg = (el) => {
     const id = el.value;
