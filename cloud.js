@@ -590,6 +590,11 @@
     // email only (no phone sign-in)
     const lab = el.querySelector('label.field2'); if (lab && lab.firstChild && /Email or phone/.test(lab.firstChild.textContent)) lab.firstChild.textContent = 'Email';
     const id = el.querySelector('#lgId'); if (id) { id.type = 'email'; id.autocomplete = 'username'; }
+    // "Sign in with Proview account" (owners and managers; one login across Proview apps)
+    const go = el.querySelector('form button.pri2[type=submit]');
+    if (go && LG.mode !== 'signup' && !el.querySelector('.pv-sso')) {
+      go.insertAdjacentHTML('afterend', '<div class="pv-or" style="display:flex;align-items:center;gap:10px;color:#6b6b75;font-size:13px"><span style="flex:1;height:1px;background:#e4e2dc"></span>or<span style="flex:1;height:1px;background:#e4e2dc"></span></div><button type="button" class="btn2 pv-sso" data-act="pvAccount">Sign in with Proview account</button>');
+    }
     const slot = el.querySelector('form > div:nth-of-type(2)');
     if (slot && LG.ok && !LG.err) slot.innerHTML = `<div class="lg-ok" role="status">${LG.ok}</div>`;
     if (loadingMsg) {
@@ -598,6 +603,19 @@
       const b = el.querySelector('button.pri2'); if (b) b.textContent = loadingMsg;
     }
   };
+
+  const PV_ACCOUNT = 'https://dashboard.proviewcrm.co.uk/';
+  A.pvAccount = () => { location.href = PV_ACCOUNT + '?app=employee&return=' + encodeURIComponent(HERE + location.search); };
+  // Arrived from the Proview account page with a signed hand-off: swap it for a normal session.
+  async function pvSso(token) {
+    const r = await fetch(C.SUPABASE_URL + '/functions/v1/sso-login', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.SUPABASE_KEY }, body: JSON.stringify({ assertion: token }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.token_hash) throw new Error(j.error || 'Sign-in with your Proview account failed. Please try again.');
+    const cur = (await O.sb.auth.getSession()).data.session?.user;
+    if (cur && String(cur.email || '').toLowerCase() !== j.email) await O.sb.auth.signOut();
+    const v = await O.sb.auth.verifyOtp({ token_hash: j.token_hash, type: 'magiclink' });
+    if (v.error) throw v.error;
+  }
 
   A.doLogin = async () => {
     const email = $('#lgId').value.trim().toLowerCase(), pw = $('#lgPw').value;
@@ -795,6 +813,13 @@
     try { if (!window.supabase) await loadScript(SB_JS); }
     catch (e) { setLoading(''); LG.err = 'Can’t reach the server. Check your internet connection and reload.'; renderLogin(); return; }
     O.sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' } });
+    const pv = location.hash.match(/[#&]pv_sso=([^&]+)/);
+    let pvErr = '';
+    if (pv) {
+      history.replaceState(null, '', location.pathname + location.search);
+      setLoading('Signing in with your Proview account…');
+      try { await pvSso(pv[1]); } catch (e) { pvErr = e.message || String(e); }
+    }
     let started = false;
     O.sb.auth.onAuthStateChange((ev, session) => {
       if (ev === 'PASSWORD_RECOVERY') { setTimeout(() => A.forcePw(), 500); }
@@ -804,6 +829,7 @@
       if (ev === 'INITIAL_SESSION' && !session) { setLoading(''); }
       if (ev === 'SIGNED_OUT' && O.ready) { A.signOut(); }
     });
+    if (pvErr) { setLoading(''); LG.err = pvErr; renderLogin(); }
     const qs = new URLSearchParams(location.search);
     const err = qs.get('error_description') || new URLSearchParams(location.hash.slice(1)).get('error_description');
     if (err) { LG.err = 'That link didn’t work: ' + err + '. Sign in below, or use “Forgot password?”.'; history.replaceState(null, '', location.pathname); renderLogin(); }
