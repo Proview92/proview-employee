@@ -175,14 +175,58 @@
     const items = pickItems().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
     if (!items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
-    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    const all = O.master && U.view === 'allbiz';
+    const allOpt = O.master ? `<option value="__all" ${all ? 'selected' : ''}>All businesses (${(pickList || items).length})</option>` : '';
+    return `<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
   }
   A.pePickOrg = (el) => {
-    const id = el.value; if (!id || id === O.org) return;
+    const id = el.value;
+    if (id === '__all') { U.view = 'allbiz'; render(); return; }
+    if (id && id === O.org && U.view === 'allbiz') { U.view = 'dashboard'; render(); return; }
+    if (!id || id === O.org) return;
+    if (U.view === 'allbiz') U.view = 'dashboard';
     const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
     const o = (pickList || []).find((x) => x.id === id);
     O.enterOrg(mine || { org_id: id, org_name: o?.name || '', member_id: 'proview-master', role: 'Owner', as_master: true });
   };
+  /* ---------------- "All businesses" (master admins, from the picker): every business at a glance ---------------- */
+  TITLES.allbiz = 'All businesses';
+  const ALLB = { list: null, busy: false, at: 0, err: '' };
+  VIEWS.allbiz = function () {
+    if (!O.master) return VIEWS.dashboard();
+    const L = ALLB.list;
+    const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
+    const n = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
+    const stat = (k, v) => `<div class="card stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+    const ago = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+    const row = (b) => {
+      const st = staffOf(b), lic = st.filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length, logins = st.filter((m) => m.has_login).length;
+      const tone = !st.length ? '' : lic === st.length ? 'green' : lic ? 'amber' : 'red';
+      return `<tr><td><b>${esc(b.name)}</b>${b.contact_email ? `<div class="small mut">${esc(b.contact_email)}</div>` : ''}${b.suspended ? ' <span class="chip red">Suspended</span>' : ''}</td>
+        <td>${st.length}</td><td>${tone ? `<span class="chip ${tone}">${lic} of ${st.length}</span>` : '—'}</td><td>${logins}</td><td class="small mut">${esc(ago(b.last_active))}</td>
+        <td style="text-align:right"><button class="btn sm ${b.id === O.org ? '' : 'pri'}" data-act="peAllOpen" data-id="${esc(b.id)}">${b.id === O.org ? 'Back to this business' : 'Open'}</button></td></tr>`;
+    };
+    const body = !L ? `<div class="pad mut">Loading…</div>`
+      : L.length ? `<table class="t"><thead><tr><th>Business</th><th>Staff</th><th>Licensed staff</th><th>Logins</th><th>Last activity</th><th></th></tr></thead><tbody>${L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(row).join('')}</tbody></table>`
+      : `<div class="pad mut">No businesses yet. Add them in the licence portal.</div>`;
+    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}${stat('Staff with a login', n((b) => staffOf(b).filter((m) => m.has_login).length))}</div>
+      ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
+      <div class="card"><div class="pad row between"><div><b style="font-size:16px">Every business</b><div class="small mut">Staff and licences across all businesses. Open one to see it as its owner does.</div></div><a class="btn sm" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licences ↗</a></div>${body}</div>`;
+  };
+  AFTER.allbiz = async function () {
+    if (!O.master || ALLB.busy || (ALLB.at && Date.now() - ALLB.at < 60e3)) return;
+    ALLB.busy = true;
+    try { const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error; ALLB.list = data || []; ALLB.err = ''; pickList = ALLB.list.map((o) => ({ id: o.id, name: o.name })); }
+    catch (e) { ALLB.err = 'Couldn’t load the businesses: ' + O.friendly(e); ALLB.list = ALLB.list || []; }
+    ALLB.at = Date.now(); ALLB.busy = false;
+    if (U.view === 'allbiz') render();
+  };
+  A.peAllOpen = (el) => {
+    const id = el.dataset.id; U.view = 'dashboard';
+    if (id === O.org) { render(); return; }
+    A.pePickOrg({ value: id });
+  };
+
   (function mountPick() {
     const brand = document.querySelector('.side .brand');
     if (brand && !document.getElementById('orgPick')) { const d = document.createElement('div'); d.className = 'client-pick'; d.id = 'orgPick'; brand.after(d); }
