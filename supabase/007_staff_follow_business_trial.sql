@@ -8,13 +8,15 @@
 -- pe_trial_emails row):
 -- * The owner (the person who started it) still gets the 3-day 'trial3' licence. That licence's
 --   expires_at is "the business end date".
--- * Anyone else added gets a 'trial3' licence with expires_at = the business end date, marked
+-- * Anyone else added gets the OWNER'S licence type and end date (so the same grace period), marked
 --   follows_owner = true. Added after the end date, it is already expired, so they see the
 --   existing "free trial ... ended" message and can't clock in (pe_licence_check).
 -- * Whenever the owner's licence changes (master extends it, or the licence portal sets a paid
 --   licence through hub_call 'set'), every follows_owner licence in that business moves to the
 --   owner's new end date. Owner licence cleared -> following licences are cleared too.
---   Owner lifetime (no end date) -> following licences have no end date either.
+--   Owner lifetime (no end date) -> following licences are lifetime too.
+--   Staff copy the owner's licence TYPE as well, so they get exactly the owner's grace period
+--   (owner decisions 8 Nov 2026: staff follow owner licence, end the same, same grace).
 -- * A staff licence set explicitly (hub_call 'set', or any write not made by this sync) stops
 --   following: the before-update trigger clears follows_owner, so it's never overridden.
 -- Businesses added by Proview (pe_master_create_org, master pe_create_org, licence portal) have
@@ -48,7 +50,7 @@ begin
     insert into public.pe_trials (org_id, who) values (o, lower(coalesce(nullif(trim(who), ''), m))) on conflict do nothing;
     insert into public.pe_licences (org_id, member_id, license_type, starts_at, expires_at, follows_owner)
     values (o, m,
-            case when ol.license_type is null then null else 'trial3' end,
+            ol.license_type,
             case when ol.license_type is null then null else least(now(), coalesce(ol.expires_at, now())) end,
             case when ol.license_type is null then null else ol.expires_at end,
             true)
@@ -93,7 +95,7 @@ begin
      and new.expires_at is not distinct from old.expires_at then return null; end if;
   perform set_config('pe.trial_sync', 'on', true);
   update public.pe_licences l
-     set license_type = case when new.license_type is null then null else 'trial3' end,
+     set license_type = new.license_type,
          starts_at    = case when new.license_type is null then null else coalesce(l.starts_at, now()) end,
          expires_at   = case when new.license_type is null then null else new.expires_at end,
          updated_at   = now()
@@ -117,9 +119,9 @@ update public.pe_licences l set follows_owner = true
 select set_config('pe.trial_sync', 'on', true);
 update public.pe_licences l
    set expires_at = ow.expires_at,
-       license_type = case when ow.license_type is null then null else 'trial3' end,
+       license_type = ow.license_type,
        updated_at = now()
   from public.pe_licences ow
  where l.follows_owner and ow.org_id = l.org_id and ow.member_id = public.pe_trial_owner(l.org_id)
-   and (l.expires_at is distinct from ow.expires_at or l.license_type is distinct from case when ow.license_type is null then null else 'trial3' end);
+   and (l.expires_at is distinct from ow.expires_at or l.license_type is distinct from ow.license_type);
 select set_config('pe.trial_sync', '', true);
