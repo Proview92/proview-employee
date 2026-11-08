@@ -221,7 +221,7 @@
       list.sort((a, b) => String(a.t).localeCompare(String(b.t)));
       // a whole business opened from the All sites page has no entry: show it as the (hidden) current choice
       const curV = `${O.org}|${here}`;
-      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ARROW + 'All sites')}</option>` : '')
+      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ' (all sites)')}</option>` : '')
         + list.map((x) => opt(x.v, x.t)).join('');
     } else {
       // someone in several businesses: one group per business, "Business ▸ All my sites" first
@@ -464,9 +464,13 @@
       b.title = name + ' – choose a site first';
     });
   };
+  // any other toast goes back to the app's usual place
+  const _toastPE = toast;
+  toast = function () { document.getElementById('toast')?.classList.remove('pe-toast-bottom'); return _toastPE.apply(this, arguments); };
   A.peAllSites = () => { if (U.view === 'allbiz' || O.home) { U.view = 'allbiz'; render(); return; } A.pePickOrg({ value: '__all' }); };
   A.peNeedSite = () => {
     toast('Choose a site in the dropdown first', 'bad');
+    document.getElementById('toast')?.classList.add('pe-toast-bottom');   // phones: not over the drop-down it points at
     const s = document.querySelector('#top .hdr-pick select'); if (!s) return;
     const w = s.closest('.hdr-pick');
     s.focus({ preventScroll: true });
@@ -477,6 +481,7 @@
   css5.textContent = `.side .nav button.pe-off{opacity:.45;cursor:not-allowed}
 .side .nav button.pe-off:hover,.side .nav button.pe-off:focus{background:transparent!important;color:inherit!important}
 .side .nav .pe-all-nav svg{flex:none}
+@media (max-width:700px){#toast.pe-toast-bottom{top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}}
 .top .hdr-pick.pe-pulse select{animation:pePickPulse 1s ease-out}
 @keyframes pePickPulse{0%{box-shadow:0 0 0 0 rgba(90,141,238,.75)}30%{box-shadow:0 0 0 5px rgba(90,141,238,.45)}100%{box-shadow:0 0 0 0 rgba(90,141,238,0)}}`;
   document.head.appendChild(css5);
