@@ -57,23 +57,14 @@
 
   let pickList = null, pickLoading = false;
   /* ---------------- master admin (Proview) ----------------
-     Businesses and licences are managed only at license.proviewcrm.co.uk.
-     In the app a master admin simply opens a business (the last one used, or the
-     first) and switches with the picker under the logo. */
+     The master lands on "All sites": every business and its sites, with Open buttons.
+     Licences are managed at license.proviewcrm.co.uk; a new business can also be started
+     here with the app's own create-company flow (it starts on a 3-day trial). */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   async function open() {
-    const last = O.lsGet('pe-last-org:' + O.user.id);
-    let list = [];
-    try { const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error; list = data || []; } catch (e) { toast(O.friendly(e), 'bad'); }
-    pickList = list.map((o) => ({ id: o.id, name: o.name }));
-    const mine = (O.orgs || []).filter((o) => !o.locked);
-    const own = mine.find((o) => o.org_id === last);
-    if (own) return O.enterOrg(own);
-    const o = list.find((x) => x.id === last) || null;
-    if (o) return O.enterOrg({ org_id: o.id, org_name: o.name, member_id: 'proview-master', role: 'Owner', as_master: true });
-    if (mine.length) return O.enterOrg(mine[0]);
-    if (list.length) return O.enterOrg({ org_id: list[0].id, org_name: list[0].name, member_id: 'proview-master', role: 'Owner', as_master: true });
-    openModal(`<div class="pad"><b style="font-size:17px">No businesses yet</b><p class="small mut">Add businesses and licences in the Proview licence portal, then come back here.</p><div class="row" style="gap:8px;justify-content:flex-end"><button class="btn" data-act="signOut">Sign out</button><a class="btn pri" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a></div></div>`);
+    ALLB.at = 0; ALLB.list = null; ALLB.sites = null;
+    O.openHome();
+    await loadAll(true);
   }
   window.PE_MASTER = { open };
 
@@ -183,17 +174,17 @@
     return [...pickList, ...mine.filter((o) => !seen.has(o.id))];
   }
   function pickHtml(compact) {
-    if (!O.ready || !O.org) return '';
+    if (!O.ready || (!O.org && !O.master)) return '';
     const items = pickItems().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
-    if (!items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
-    const all = O.master && U.view === 'allbiz';
+    if (O.org && !items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
+    const all = O.master && (U.view === 'allbiz' || !O.org);
     const allOpt = O.master ? `<option value="__all" ${all ? 'selected' : ''}>All sites (${(pickList || items).length})</option>` : '';
-    return `${compact ? '' : `<label class="pv-viewing">${all ? 'Master view' : 'Viewing site'}</label>`}<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    return `${compact ? '' : `<label class="pv-viewing">${all ? 'Master view' : 'Viewing business'}</label>`}<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
   }
   A.pePickOrg = (el) => {
     const id = el.value;
-    if (id === '__all') { U.view = 'allbiz'; render(); return; }
+    if (id === '__all') { if (O.home) return; U.view = 'allbiz'; render(); return; }
     if (id && id === O.org && U.view === 'allbiz') { U.view = 'dashboard'; render(); return; }
     if (!id || id === O.org) return;
     if (U.view === 'allbiz') U.view = 'dashboard';
@@ -201,42 +192,112 @@
     const o = (pickList || []).find((x) => x.id === id);
     O.enterOrg(mine || { org_id: id, org_name: o?.name || '', member_id: 'proview-master', role: 'Owner', as_master: true });
   };
-  /* ---------------- "All businesses" (master admins, from the picker): every business at a glance ---------------- */
-  TITLES.allbiz = 'All businesses';
-  const ALLB = { list: null, busy: false, at: 0, err: '' };
+  /* ---------------- "All sites" (master admins): every business and its sites ----------------
+     The master's landing page (no business open, O.home), and also reachable from the picker. */
+  TITLES.allbiz = 'All sites';
+  const ALLB = { list: null, sites: null, busy: false, at: 0, err: '', siteErr: false };
+  U.allQ = U.allQ || '';
+  async function loadAll(force) {
+    if (!O.master || ALLB.busy || (!force && ALLB.at && Date.now() - ALLB.at < 60e3)) return;
+    ALLB.busy = true;
+    try {
+      const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error;
+      ALLB.list = data || []; ALLB.err = '';
+      pickList = ALLB.list.map((o) => ({ id: o.id, name: o.name }));
+      // anything cached on this device for a business that no longer exists goes
+      if (O.purgeCache) O.purgeCache(new Set([...ALLB.list.map((o) => o.id), ...(O.orgs || []).map((o) => o.org_id)]));
+    } catch (e) { ALLB.err = 'Couldn’t load the businesses: ' + O.friendly(e); ALLB.list = ALLB.list || []; }
+    // sites = "locations" records of each business (the master may read every business)
+    try {
+      const all = []; let from = 0;
+      for (;;) {
+        const { data, error } = await O.sb.from('pe_rows').select('org_id,id,data').eq('coll', 'locations').eq('deleted', false).order('org_id').order('id').range(from, from + 999);
+        if (error) throw error;
+        all.push(...data); if (data.length < 1000) break; from += 1000;
+      }
+      const by = new Map();
+      all.forEach((r) => { if (r.data && r.data.archived) return; if (!by.has(r.org_id)) by.set(r.org_id, []); by.get(r.org_id).push({ id: r.id, name: (r.data && r.data.name) || 'Site', address: (r.data && r.data.address) || '' }); });
+      ALLB.sites = by; ALLB.siteErr = false;
+    } catch (e) { ALLB.sites = ALLB.sites || new Map(); ALLB.siteErr = true; }
+    ALLB.at = Date.now(); ALLB.busy = false;
+    if (O.ready && U.view === 'allbiz') render();
+    else if (O.ready) renderNav();
+  }
   VIEWS.allbiz = function () {
     if (!O.master) return VIEWS.dashboard();
-    const L = ALLB.list;
+    const L = ALLB.list, SI = ALLB.sites || new Map();
     const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
     const n = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
     const stat = (k, v) => `<div class="card stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
     const ago = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-    const row = (b) => {
-      const st = staffOf(b), lic = st.filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length, logins = st.filter((m) => m.has_login).length;
-      const tone = !st.length ? '' : lic === st.length ? 'green' : lic ? 'amber' : 'red';
-      return `<tr><td><b>${esc(b.name)}</b>${b.contact_email ? `<div class="small mut">${esc(b.contact_email)}</div>` : ''}${b.suspended ? ' <span class="chip red">Suspended</span>' : ''}</td>
-        <td>${st.length}</td><td>${tone ? `<span class="chip ${tone}">${lic} of ${st.length}</span>` : '—'}</td><td>${logins}</td><td class="small mut">${esc(ago(b.last_active))}</td>
-        <td style="text-align:right"><button class="btn sm ${b.id === O.org ? '' : 'pri'}" data-act="peAllOpen" data-id="${esc(b.id)}">${b.id === O.org ? 'Back to this business' : 'Open'}</button></td></tr>`;
+    const q = String(U.allQ || '').trim().toLowerCase();
+    const lic = (b) => {
+      const st = staffOf(b), ok = st.filter((m) => licOk({ type: m.license_type, expires: m.expires_at }));
+      if (!st.length) return '<span class="mut">—</span>';
+      const tone = ok.length === st.length ? 'green' : ok.length ? 'amber' : 'red';
+      const ends = ok.map((m) => (m.license_type === 'lifetime' || !m.expires_at ? Infinity : new Date(m.expires_at).getTime())).filter((t) => t !== Infinity);
+      const soon = ends.length ? Math.min(...ends) : null;
+      return `<span class="chip ${tone}">${ok.length} of ${st.length} licensed</span>${soon ? `<div class="tiny mut">Next ends ${esc(fmt(soon))}</div>` : ''}`;
     };
+    const openBtn = (b, site) => {
+      const here = b.id === O.org && !site;
+      return `<button class="btn sm ${here ? '' : 'pri'}" data-act="peAllOpen" data-id="${esc(b.id)}"${site ? ` data-loc="${esc(site.id)}"` : ''}>${here ? 'Back to this business' : 'Open'}</button>`;
+    };
+    const rows = [];
+    (L || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).forEach((b) => {
+      const sites = (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name)));
+      const bizHit = !q || [b.name, b.contact_email].some((x) => x && String(x).toLowerCase().includes(q));
+      const shown = bizHit ? sites : sites.filter((x) => [x.name, x.address].some((y) => y && String(y).toLowerCase().includes(q)));
+      if (!bizHit && !shown.length) return;
+      const bizCell = (span) => `<td class="c-biz"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top"><b>${esc(b.name)}</b>${b.contact_email ? `<div class="small mut">${esc(b.contact_email)}</div>` : ''}${b.suspended ? ' <span class="chip red">Suspended</span>' : ''}<div class="tiny mut">${staffOf(b).length} staff · last active ${esc(ago(b.last_active))}</div></td>`;
+      const licCell = (span) => `<td class="c-lic"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top">${lic(b)}</td>`;
+      if (!shown.length) {
+        rows.push(`<tr class="pe-first">${bizCell(1)}<td class="c-site mut">${ALLB.siteErr ? 'Sites couldn’t load' : 'No sites yet'}</td>${licCell(1)}<td class="c-open" style="text-align:right">${openBtn(b)}</td></tr>`);
+        return;
+      }
+      shown.forEach((x, i) => rows.push(`<tr${i ? '' : ' class="pe-first"'}>${i ? '' : bizCell(shown.length)}<td class="c-site"><b>${esc(x.name)}</b>${x.address ? `<div class="small mut">${esc(x.address)}</div>` : ''}</td>${i ? '' : licCell(shown.length)}<td class="c-open" style="text-align:right">${openBtn(b, x)}</td></tr>`));
+    });
+    const nSites = L ? L.reduce((t, b) => t + (SI.get(b.id) || []).length, 0) : '…';
+    const many = L && (L.length + (typeof nSites === 'number' ? nSites : 0)) > 6;
+    const addBtn = `<button class="btn sm pri" data-act="peAddBiz">${ic('plus', 14)} Add a business</button>`;
+    const portalBtn = `<a class="btn sm" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licence portal ↗</a>`;
+    const refreshBtn = `<button class="btn sm" data-act="peAllRefresh"${ALLB.busy ? ' disabled' : ''}>${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
     const body = !L ? `<div class="pad mut">Loading…</div>`
-      : L.length ? `<table class="t"><thead><tr><th>Business</th><th>Staff</th><th>Licensed staff</th><th>Logins</th><th>Last activity</th><th></th></tr></thead><tbody>${L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(row).join('')}</tbody></table>`
-      : `<div class="pad mut">No businesses yet. Add them in the licence portal.</div>`;
-    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}${stat('Staff with a login', n((b) => staffOf(b).filter((m) => m.has_login).length))}</div>
+      : !L.length ? `<div class="pad pe-allempty" style="text-align:center;padding:40px 20px">${ic('building', 40)}<div style="font-weight:650;font-size:16px;margin-top:8px">No businesses yet</div><div class="small mut" style="margin:4px auto 14px;max-width:420px">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">${addBtn}${portalBtn}${refreshBtn}</div></div>`
+      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Site</th><th>Licences</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      : `<div class="pad mut">Nothing matches “${esc(U.allQ)}”.</div>`;
+    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Sites', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      <div class="card"><div class="pad row between"><div><b style="font-size:16px">Every business</b><div class="small mut">Staff and licences across all businesses. Open one to see it as its owner does.</div></div><a class="btn sm" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licences ↗</a></div>${body}</div>`;
+      <div class="card pe-allsites"><div class="pad row between" style="flex-wrap:wrap;gap:10px"><div><b style="font-size:16px">All sites</b><div class="small mut">Every business and its sites. Open one to see it as its owner does.</div></div><div class="row" style="gap:8px;flex-wrap:wrap">${L && L.length ? addBtn + portalBtn + refreshBtn : ''}</div></div>
+      ${many || q ? `<div style="padding:0 14px 12px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and sites…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and sites"></div></div>` : ''}${body}</div>`;
   };
-  AFTER.allbiz = async function () {
-    if (!O.master || ALLB.busy || (ALLB.at && Date.now() - ALLB.at < 60e3)) return;
-    ALLB.busy = true;
-    try { const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error; ALLB.list = data || []; ALLB.err = ''; pickList = ALLB.list.map((o) => ({ id: o.id, name: o.name })); }
-    catch (e) { ALLB.err = 'Couldn’t load the businesses: ' + O.friendly(e); ALLB.list = ALLB.list || []; }
-    ALLB.at = Date.now(); ALLB.busy = false;
-    if (U.view === 'allbiz') render();
-  };
+  AFTER.allbiz = function () { loadAll(false); };
+  A.peAllRefresh = () => { loadAll(true); render(); };
   A.peAllOpen = (el) => {
-    const id = el.dataset.id; U.view = 'dashboard';
+    const id = el.dataset.id, loc = el.dataset.loc || '';
+    U.fLoc = loc; U.view = 'dashboard';
     if (id === O.org) { render(); return; }
     A.pePickOrg({ value: id });
+  };
+  // a new business with the app's own create-company flow (the master becomes its owner; 3-day trial)
+  A.peAddBiz = () => openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Add a business</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="small mut" style="margin:6px 0 4px">Creates the business with you as its owner, on a 3-day trial. Add its sites under Locations, and licences in the <a href="${LIC_PORTAL}" target="_blank" rel="noopener">licence portal</a>.</p><label class="f">Business name</label><input class="inp" id="peBizName" placeholder="Business name" autocomplete="organization"><div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="peAddBizGo">Create business</button></div></div>`, 440);
+  A.peAddBizGo = async () => {
+    const company = ($('#peBizName')?.value || '').trim();
+    if (!company) return toast('Enter the business name', 'bad');
+    A.closeModal();
+    await O.createCompany('Proview', company);
+    ALLB.at = 0; pickList = null;
+  };
+  // on the All sites home there's no business open: only the All sites page, and no business tools
+  const _renderNow = renderNow;
+  renderNow = function () {
+    const home = !!(O.ready && O.home);
+    if (home) U.view = 'allbiz';
+    document.body.classList.toggle('pe-home', home);
+    const r = _renderNow.apply(this, arguments);
+    // signed out: only the sign-in page is in the page, no app shell or business data behind it
+    if (document.body.classList.contains('signed-out')) ['#content', '#top', '#nav', '#orgPick', '#venueCard', '#sideFoot'].forEach((q) => { const el = document.querySelector(q); if (el) el.innerHTML = ''; });
+    return r;
   };
 
   (function mountPick() {
@@ -305,4 +366,10 @@
   const css2 = document.createElement('style');
   css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:16px}.lic-banner>svg{flex:none;align-self:flex-start;margin-top:2px}.lic-banner .lic-txt{flex:1;min-width:200px}.lic-banner .lic-btn{flex:none;margin-left:auto;text-decoration:none}.lic-banner.ok{border-color:var(--line);background:var(--card);color:var(--ink)}@media (max-width:700px){.lic-banner .lic-btn{width:100%;justify-content:center;margin-left:0;min-height:40px}}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
   document.head.appendChild(css2);
+  const css4 = document.createElement('style');
+  css4.textContent = `body.pe-home .side .nav,body.pe-home #tabbar,body.pe-home .clockbox,body.pe-home [data-act=notifs],body.pe-home .hub-chat,body.pe-home .hub-inbox,body.pe-home .side-foot [data-act=kiosk],body.pe-home .top>span[style*="width:1px"]{display:none!important}body.pe-home #venueCard{pointer-events:none}
+.pe-allsites .search{max-width:420px}.pe-allsites td .btn{white-space:nowrap}
+@media (max-width:700px){.pe-sites table.t,.pe-sites tbody{display:block;min-width:0}.pe-sites thead{display:none}.pe-sites tr{display:flex;flex-wrap:wrap;align-items:center}.pe-sites tr.pe-first{border-top:1px solid var(--line)}.pe-sites td{display:block;border:0!important}
+.pe-sites td.c-biz{order:1;flex:1 1 100%;min-width:0;padding-bottom:2px}.pe-sites td.c-lic{order:2;flex:1 1 100%;padding-top:2px;padding-bottom:4px}.pe-sites td.c-lic .tiny{display:inline;margin-left:6px}.pe-sites td.c-site{order:3;flex:1 1 0;min-width:0;padding:6px 10px 6px 22px}.pe-sites td.c-open{order:4;flex:0 0 auto;padding:6px 10px}}`;
+  document.head.appendChild(css4);
 })();

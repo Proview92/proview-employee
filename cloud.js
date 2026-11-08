@@ -168,7 +168,7 @@
 
   /* ---------------- sending changes ---------------- */
   function noteChanges() {
-    if (!O.ready || O.applying) return;
+    if (!O.ready || O.applying || !O.org) return;
     const now = rowsFromS(S), team = managedIds();
     now.forEach((r, k) => {
       const c = canon(r.data);
@@ -342,11 +342,63 @@
     return all;
   }
   function saveCache() {
-    if (!O.ready) return;
+    if (!O.ready || !O.org) return;
     lsSet(cacheKey(), { since: O.since, org: O.org, orgName: O.orgName, member: O.member, role: O.role, rows: [...O.rows.values()] });
   }
+  /* ---------------- this device's cached business data ----------------
+     Keys: pe-cache:<user>:<org>, pe-queue:<user>:<org>, pe-last-org:<user> (an org id), pvhub.<org>.<member>.<k>.
+     keep = Set of org ids the signed-in person can open now (null: only drop other people's data). */
+  function lsKeys() { const out = []; try { for (let i = 0; i < localStorage.length; i++) out.push(localStorage.key(i)); } catch (e) {} return out; }
+  function purgeCache(keep) {
+    const me = O.user && O.user.id;
+    lsKeys().forEach((k) => {
+      let m = /^pe-(?:cache|queue):([^:]+):(.*)$/.exec(k);
+      if (m) { if (m[1] !== me || (keep && !keep.has(m[2]))) lsDel(k); return; }
+      m = /^pe-last-org:(.+)$/.exec(k);
+      if (m) { if (m[1] !== me || (keep && !keep.has(lsGet(k)))) lsDel(k); return; }
+      m = /^pvhub\.([^.]+)\./.exec(k);
+      if (m && keep && m[1] !== 'local' && m[1] !== 'x' && !keep.has(m[1])) lsDel(k);
+    });
+  }
+  // sign-out: no business data stays on the device
+  function clearCache() { lsKeys().forEach((k) => { if (/^(pe-cache:|pe-queue:|pe-last-org:|pvhub\.)/.test(k)) lsDel(k); }); }
+  O.purgeCache = purgeCache;
+
+  // Master "All sites" home: signed in, no business open, nothing synced.
+  function openHome() {
+    if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
+    clearTimeout(O.timer);
+    O.org = null; O.orgName = ''; O.member = 'proview-master'; O.role = 'Owner'; O.asMaster = true; O.home = true;
+    O.rows = new Map(); O.snap = new Map(); O.queue = new Map(); O.licences = new Map(); O.myLicence = null;
+    O.applying = true;
+    try { S = finishState(stateFromRows([])); } finally { O.applying = false; }
+    S.members.push({ id: O.member, name: 'Proview (master admin)', role: 'Owner', email: O.user.email, group: '', archived: false, color: '#5a5fbb', _virtual: true });
+    S.org.name = 'All sites';
+    O.ready = true;
+    setLoading('');
+    LG = { id: '', show: false, err: '', keep: true };
+    closeDrawer(); A.closeModal();
+    U.view = 'allbiz';
+    setSync('synced');
+    render();
+  }
+  O.openHome = openHome;
+
+  // signed in, but nothing to open: back to the sign-in page with a message
+  async function bounce(msg) {
+    if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
+    clearCache();
+    O.ready = false; O.home = false; O.org = null; O.member = null; O.role = null; O.orgs = []; O.master = false; O.asMaster = false;
+    O.rows = new Map(); O.snap = new Map(); O.queue = new Map();
+    await O.sb.auth.signOut().catch(() => {});
+    closeDrawer(); A.closeModal();
+    S = finishState(stateFromRows([]));
+    loadingMsg = '';
+    LG = { id: '', show: false, err: msg, keep: true }; render();
+  }
+
   async function openOrg(org) {
-    O.org = org.org_id; O.orgName = org.org_name; O.member = org.member_id; O.role = org.role; O.asMaster = !!org.as_master;
+    O.org = org.org_id; O.orgName = org.org_name; O.member = org.member_id; O.role = org.role; O.asMaster = !!org.as_master; O.home = false;
     lsSet('pe-last-org:' + O.user.id, O.org);
     let rows;
     try {
@@ -384,29 +436,29 @@
     O.user = user;
     if (!user.user_metadata?.pwSet && user.app_metadata?.provider === 'email' && user.user_metadata?.invited) setTimeout(() => A.forcePw(), 600);
     setLoading('Opening your company…');
-    let orgs;
+    let orgs, offline = false;
     try {
       const { data, error } = await O.sb.rpc('pe_whoami'); if (error) throw error; orgs = data || [];
     } catch (e) {
       const c = lsGet('pe-last-org:' + user.id) && lsGet('pe-cache:' + user.id + ':' + lsGet('pe-last-org:' + user.id));
-      if (c) orgs = [{ org_id: c.org, org_name: c.orgName, member_id: c.member, role: c.role }];
+      if (c) { orgs = [{ org_id: c.org, org_name: c.orgName, member_id: c.member, role: c.role }]; offline = true; }
       else { setLoading(''); LG.err = friendly(e); renderLogin(); return; }
     }
     O.orgs = orgs;
     O.master = orgs.some((o) => o.is_master);
-    if (!O.master) { try { const { data } = await O.sb.rpc('pe_am_master'); O.master = !!data; } catch (e) {} }
+    if (!O.master && !offline) { try { const { data } = await O.sb.rpc('pe_am_master'); O.master = !!data; } catch (e) {} }
     const usable = orgs.filter((o) => !o.locked);
-    // master admin (Proview): open the last business used (any business, not just their own); no master page
-    if (O.master && window.PE_MASTER) {
-      const lastOrg = lsGet('pe-last-org:' + user.id);
-      if (!usable.length || (lastOrg && !usable.some((o) => o.org_id === lastOrg))) { await window.PE_MASTER.open(); return; }
-    }
+    // forget businesses on this device that this person can no longer open (and anyone else's data)
+    if (offline) purgeCache(null);
+    else if (!O.master) purgeCache(new Set(orgs.map((o) => o.org_id)));
+    // master admin (Proview): always land on "All sites" (it purges the cache once it has the list)
+    if (O.master && window.PE_MASTER && !offline) { await window.PE_MASTER.open(); return; }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
       if (meta.company) { await createCompany(meta.name || user.email, meta.company); return; }
-      setLoading(''); showNoCompany(); return;
+      await bounce('Your login isn’t linked to a business yet. Ask your owner or Proview.'); return;
     }
-    if (!usable.length) { setLoading(''); showLocked(orgs[0]); return; }
+    if (!usable.length) { await bounce(lockedMsg(orgs[0])); return; }
     const last = lsGet('pe-last-org:' + user.id);
     await enterOrg(usable.find((o) => o.org_id === last) || usable[0]);
   }
@@ -418,10 +470,11 @@
     loadLicences().catch(() => {});
     setLoading('');
     LG = { id: '', show: false, err: '', keep: true };
-    U.view = O.role === 'Member' ? 'sHome' : (U.view && U.view !== 'sHome' && U.view !== 'master' ? U.view : 'dashboard');
+    U.view = O.role === 'Member' ? 'sHome' : (U.view && U.view !== 'sHome' && U.view !== 'master' && U.view !== 'allbiz' ? U.view : 'dashboard');
     render();
   }
   O.enterOrg = enterOrg;
+  O.createCompany = (name, company) => createCompany(name, company);
   O.lsSet = lsSet; O.lsGet = lsGet; O.friendly = friendly;
   // licences of everyone in my company (owners/admins see all, others see their own)
   async function loadLicences() {
@@ -432,13 +485,13 @@
     if (O.ready) render();
   }
   O.loadLicences = loadLicences;
-  function showLocked(org) {
+  function lockedMsg(org) {
     const own = org.role === 'Owner' || org.role === 'Admin';
     const why = org.suspended
-      ? `<b>${esc(org.org_name)}</b>’s Proview Employee account is on hold.`
-      : `Your Proview Employee licence at <b>${esc(org.org_name)}</b> has ended${org.license_expires_at ? ' (' + new Date(org.license_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ')' : ''}.`;
-    const what = own ? 'To carry on, contact Proview to renew: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>.' : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.';
-    openModal(`<div class="pad"><b style="font-size:17px">${org.suspended ? 'Account on hold' : 'Licence ended'}</b><p class="mut" style="margin:8px 0 0">${why} ${what}</p><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-act="signOut">Sign out</button></div></div>`, 440);
+      ? `${org.org_name}’s Proview Employee account is on hold.`
+      : `Your Proview Employee licence at ${org.org_name} has ended${org.license_expires_at ? ' (' + new Date(org.license_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ')' : ''}.`;
+    const what = own ? 'To carry on, contact Proview to renew: altun@proviewtech.co.uk.' : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.';
+    return why + ' ' + what;
   }
 
   // A new company, with me as the owner. Optionally brings the company already in this browser.
@@ -461,7 +514,7 @@
       s = starterCompany(name, company, email, myId);
     }
     const { data: org, error } = await O.sb.rpc('pe_create_org', { company, my_member_id: myId });
-    if (error) { setLoading(''); LG.err = friendly(error); renderLogin(); return; }
+    if (error) { setLoading(''); if (O.home) { toast(friendly(error), 'bad'); return; } LG.err = friendly(error); renderLogin(); return; }
     O.org = org; O.orgName = company; O.member = myId; O.role = 'Owner';
     // upload files (payslips/P45s) and strip them from the records
     if (useLocal && s.docs?.length) {
@@ -483,7 +536,7 @@
     }
     // people moved in from this browser are NOT emailed automatically: invite them from their profile
     const others = useLocal ? s.members.filter((m) => m.id !== myId && m.email && !m.archived).length : 0;
-    await O.sb.auth.updateUser({ data: { company: null, pwSet: true } }).catch(() => {});
+    if (!O.master) await O.sb.auth.updateUser({ data: { company: null, pwSet: true } }).catch(() => {});
     await openOrg({ org_id: org, org_name: company, member_id: myId, role: 'Owner' });
     setLoading('');
     U.view = useLocal ? 'dashboard' : 'getstarted';
@@ -698,10 +751,11 @@
   A.signOut = async () => {
     try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
     if (O.queue.size) { try { await push(); } catch (e) {} }
-    if (O.channel) O.sb.removeChannel(O.channel);
-    if (!O.queue.size) lsDel(queueKey());
-    lsDel(cacheKey());
-    O.ready = false; O.org = null; O.member = null; O.role = null; O.rows = new Map(); O.snap = new Map(); O.queue = new Map(); O.linked = null; O.invited = new Set();
+    if (O.channel) { O.sb.removeChannel(O.channel); O.channel = null; }
+    clearTimeout(O.timer);
+    clearCache();             // no business data stays on this device after sign-out
+    O.ready = false; O.home = false; O.org = null; O.member = null; O.role = null; O.orgs = []; O.master = false; O.asMaster = false; O.licences = null; O.myLicence = null;
+    O.rows = new Map(); O.snap = new Map(); O.queue = new Map(); O.linked = null; O.invited = new Set();
     await O.sb.auth.signOut().catch(() => {});
     closeDrawer(); A.closeModal(); A.navClose?.();
     S = finishState(stateFromRows([]));
