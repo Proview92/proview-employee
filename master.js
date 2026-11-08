@@ -158,30 +158,77 @@
     const sp = top.querySelector('.sp'); if (sp) sp.after(b); else top.appendChild(b);
   };
 
-  /* ---------------- business picker under the logo (same as Proview Signage's client picker) ---------------- */
-  // Master admins see every business (plus a way back to the master page); others see the companies they belong to.
+  /* ---------------- site drop-down in the top header (same as Proview WiFi) ----------------
+     Right after the page title: "All sites (N)" (master) and "Business ▸ Site", grouped by business.
+     Choosing one switches straight away: another business opens it (as the old picker did), a site
+     sets the dashboard's location filter (U.fLoc), as "Open" on the All sites page does. */
   async function pickLoad() {
     if (pickLoading) return; pickLoading = true;
-    try { const { data } = await O.sb.rpc('pe_master_overview'); pickList = (data || []).map((o) => ({ id: o.id, name: o.name })); }
-    catch (e) { pickList = []; }
-    pickLoading = false; if (O.ready) renderNav();
+    try { await loadAll(false); } catch (e) {}
+    pickLoading = false;
   }
-  function pickItems() {
-    const mine = (O.orgs || []).filter((o) => !o.locked).map((o) => ({ id: o.org_id, name: o.org_name }));
-    if (!O.master) return mine;
-    if (!pickList) { pickLoad(); return mine; }
-    const seen = new Set(pickList.map((o) => o.id));
-    return [...pickList, ...mine.filter((o) => !seen.has(o.id))];
+  const byName = (a, b) => String(a.name).localeCompare(String(b.name));
+  // the sites (locations) this person may see in the open business
+  function mySites() {
+    const L = (S.locations || []).filter((l) => !l.archived).slice().sort(byName);
+    if (O.asMaster || ['Owner', 'Admin'].includes(O.role)) return L;
+    const m = typeof me === 'function' ? me() : null;
+    const only = m && Array.isArray(m.sites) && m.sites.length ? m.sites : null;
+    return only ? L.filter((l) => only.includes(l.id)) : L;
   }
-  function pickHtml(compact) {
+  // [{ id, name, sites: [{ id, name }] | null }]: sites null = not known (another business of a non-master)
+  function pickGroups() {
+    const cur = O.org ? { id: O.org, name: S.org?.name || 'This business', sites: mySites() } : null;
+    if (O.master) {
+      if (!pickList || !ALLB.sites) pickLoad();
+      const SI = ALLB.sites || new Map();
+      const g = (pickList || []).map((o) => (o.id === O.org && cur ? { ...cur, name: o.name || cur.name } : { id: o.id, name: o.name, sites: (SI.get(o.id) || []).slice().sort(byName) }));
+      if (cur && !g.some((o) => o.id === O.org)) g.push(cur);
+      return g.sort(byName);
+    }
+    const g = (O.orgs || []).filter((o) => !o.locked).map((o) => (o.org_id === O.org && cur ? { ...cur, name: o.org_name || cur.name } : { id: o.org_id, name: o.org_name, sites: null }));
+    if (cur && !g.some((o) => o.id === O.org)) g.push(cur);
+    return g.sort(byName);
+  }
+  const ARROW = ' ▸ ';
+  function pickHtml() {
     if (!O.ready || (!O.org && !O.master)) return '';
-    const items = pickItems().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    if (!O.master && items.length <= 1) return compact ? '' : `<div class="sp-title" title="${esc(S.org?.name || '')}">${esc(S.org?.name || items[0]?.name || '')}</div>`;
-    if (O.org && !items.some((o) => o.id === O.org)) items.unshift({ id: O.org, name: S.org?.name || 'This business' });
+    const groups = pickGroups();
+    const staff = typeof isStaff === 'function' && isStaff() && !O.asMaster;
+    const cur = groups.find((g) => g.id === O.org);
+    const one = (t) => `<div class="hdr-pick"><div class="hdr-one" title="${esc(t)}">${esc(t)}</div></div>`;
+    // one business, and one site (or staff, who have no business-wide view): the name in the same box
+    if (!O.master && groups.length <= 1) {
+      if (!cur) return '';
+      if (staff || cur.sites.length <= 1) return one(cur.sites.length === 1 ? cur.name + ARROW + cur.sites[0].name : cur.name);
+    }
     const all = O.master && (U.view === 'allbiz' || !O.org);
-    const allOpt = O.master ? `<option value="__all" ${all ? 'selected' : ''}>All sites (${(pickList || items).length})</option>` : '';
-    return `${compact ? '' : `<label class="pv-viewing">${all ? 'Master view' : 'Viewing business'}</label>`}<select aria-label="Business" title="Switch business" data-act-change="pePickOrg">${allOpt}${items.map((o) => `<option value="${esc(o.id)}" ${o.id === O.org && !all ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    const here = cur && U.fLoc && cur.sites.some((x) => x.id === U.fLoc) ? U.fLoc : '';
+    const sel = (v) => (!all && v === `${O.org}|${here}` ? ' selected' : '');
+    const nSites = groups.reduce((t, g) => t + (g.sites ? g.sites.length : 0), 0);
+    const opts = groups.map((g) => {
+      const list = g.sites || [];
+      const whole = O.master ? 'Whole business' : 'All my sites';
+      let o;
+      if (staff && g.id === O.org) o = `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name)}</option>`;
+      else if (!g.sites) o = `<option value="${esc(g.id)}|">${esc(g.name)}</option>`;
+      else if (!list.length) o = `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name)}</option>`;
+      else o = (list.length > 1 || g.id === O.org ? `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name + ARROW + whole)}</option>` : '')
+        + list.map((x) => `<option value="${esc(g.id)}|${esc(x.id)}"${sel(g.id + '|' + x.id)}>${esc(g.name + ARROW + x.name)}</option>`).join('');
+      return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
+    }).join('');
+    const allOpt = O.master ? `<option value="__all"${all ? ' selected' : ''}>All sites (${nSites})</option>` : '';
+    const tip = O.master ? (all ? 'Master view: all sites' : 'Viewing one business as its owner sees it') : 'Switch site';
+    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Site" title="${tip}" data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
   }
+  A.pePickSite = (el) => {
+    const v = el.value;
+    if (v === '__all') return A.pePickOrg({ value: '__all' });
+    const i = v.indexOf('|'), id = v.slice(0, i), loc = v.slice(i + 1);
+    U.fLoc = loc;
+    if (id === O.org) { if (U.view === 'allbiz') U.view = 'dashboard'; render(); return; }
+    A.pePickOrg({ value: id });
+  };
   A.pePickOrg = (el) => {
     const id = el.value;
     if (id === '__all') { if (O.home) return; U.view = 'allbiz'; render(); return; }
@@ -221,7 +268,7 @@
     } catch (e) { ALLB.sites = ALLB.sites || new Map(); ALLB.siteErr = true; }
     ALLB.at = Date.now(); ALLB.busy = false;
     if (O.ready && U.view === 'allbiz') render();
-    else if (O.ready) renderNav();
+    else if (O.ready) { renderNav(); renderTop(); }
   }
   VIEWS.allbiz = function () {
     if (!O.master) return VIEWS.dashboard();
@@ -318,23 +365,19 @@
     document.body.classList.toggle('pe-home', home);
     const r = _renderNow.apply(this, arguments);
     // signed out: only the sign-in page is in the page, no app shell or business data behind it
-    if (document.body.classList.contains('signed-out')) ['#content', '#top', '#nav', '#orgPick', '#venueCard', '#sideFoot'].forEach((q) => { const el = document.querySelector(q); if (el) el.innerHTML = ''; });
+    if (document.body.classList.contains('signed-out')) ['#content', '#top', '#nav', '#venueCard', '#sideFoot'].forEach((q) => { const el = document.querySelector(q); if (el) el.innerHTML = ''; });
     return r;
   };
 
-  (function mountPick() {
-    const brand = document.querySelector('.side .brand');
-    if (brand && !document.getElementById('orgPick')) { const d = document.createElement('div'); d.className = 'client-pick'; d.id = 'orgPick'; brand.after(d); }
-  })();
-  const _renderNav = renderNav;
-  renderNav = function () { _renderNav.apply(this, arguments); const p = document.getElementById('orgPick'); if (p) p.innerHTML = pickHtml(); };
+  // the drop-down sits right after the page title (one picker only: nothing in the left menu)
   const _renderTop2 = renderTop;
   renderTop = function () {
     _renderTop2.apply(this, arguments);
     const top = $('#top'); if (!top || !O.ready) return;
-    const h = pickHtml(true); if (!h) return;
-    const w = document.createElement('span'); w.className = 'top-pick'; w.innerHTML = h;
-    const sp = top.querySelector('.sp'); if (sp) sp.after(w); else top.appendChild(w);
+    top.querySelectorAll('.hdr-pick').forEach((e) => e.remove());
+    const h = pickHtml(); if (!h) return;
+    const h2 = top.querySelector(':scope > h2');
+    if (h2) h2.insertAdjacentHTML('afterend', h); else top.insertAdjacentHTML('afterbegin', h);
   };
   // short names under the icons in the narrow iPad sidebar (same as Proview Bookings)
   const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Locations', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', locations: 'Sites', projects: 'Projects', organization: 'Company',
@@ -373,16 +416,18 @@
   const css3 = document.createElement('style');
   css3.textContent = `.slbl{display:none}
 @media (min-width:701px) and (max-width:900px){.side .nav button{flex-direction:column;gap:4px!important;padding:8px 2px 7px!important;justify-content:center}.side .slbl{display:block;font-size:10.5px;line-height:1.15;font-weight:500;text-align:center;white-space:nowrap;letter-spacing:-.1px}.side .nav button .cnt{display:none}.side-foot button{flex-direction:column;gap:3px;padding:7px 2px!important}.side-foot .slbl{font-size:10px}.side-foot button[data-act=collapse]{display:none!important}}
-.client-pick{margin:0 14px 12px}.client-pick:empty{display:none}
-.client-pick select,.top-pick select{width:100%;background:#23232a;color:#fff;border:1px solid #33333c;border-radius:9px;padding:9px 30px 9px 11px;font:inherit;font-size:14px;font-weight:500;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;text-overflow:ellipsis}
-.client-pick select:hover{border-color:#4a4a55}.client-pick select:focus-visible,.top-pick select:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
-.client-pick select option{background:#23232a;color:#fff}
-.client-pick .sp-title{color:#9a9aa4;font-size:13px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.app.collapsed .client-pick{display:none}.top-pick{display:none}
-@media (min-width:701px) and (max-width:900px){.client-pick{display:none}}
-@media (max-width:900px){.top-pick{display:block;max-width:46%;min-width:0;margin:0 6px}.top-pick select{padding:7px 28px 7px 10px;font-size:15px;background-color:var(--card);color:var(--ink);border:1px solid var(--line);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}.top-pick select option{background:var(--card);color:var(--ink)}}
-@media (max-width:700px){.top .top-pick{display:none!important}.app .side .client-pick{display:block!important}}
-@media (hover:none) and (pointer:coarse){.client-pick select,.top-pick select{font-size:16px}}`;
+/* site drop-down in the top header, after the title (same as Proview WiFi's .hdr-pick) */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#top .hdr-pick{margin:0 0 0 6px;flex:1 1 auto;min-width:0;max-width:640px;display:flex}
+#top .hdr-pick select,#top .hdr-pick .hdr-one{width:100%;min-width:170px;height:38px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background-color:var(--card);color:var(--ink);font:600 14px Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;padding:0 30px 0 12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#top .hdr-pick .hdr-one{display:block;line-height:36px;padding-right:12px;cursor:default;width:auto;max-width:100%}
+#top .hdr-pick select:focus-visible{outline:2px solid #5a8dee;outline-offset:2px}
+#top .hdr-pick option,#top .hdr-pick optgroup{background:var(--card);color:var(--ink)}
+@media (min-width:701px){#top>h2{flex:0 0 auto;white-space:nowrap}}
+/* phone: the status/search/chat/mail/bell tray leaves no room on the title row, so the drop-down
+   takes a full-width second row of the header, right under the title */
+@media (max-width:700px){#top.top{flex-wrap:wrap!important;row-gap:8px}#top .hdr-pick{order:99;flex:1 1 100%;margin:0;max-width:none}#top .hdr-pick select,#top .hdr-pick .hdr-one{min-width:0;height:36px;font-size:13px}#top .hdr-pick .hdr-one{line-height:34px;width:100%}}
+@media (hover:none) and (pointer:coarse){#top .hdr-pick select{font-size:16px}}`;
   document.head.appendChild(css3);
 
   const css2 = document.createElement('style');
