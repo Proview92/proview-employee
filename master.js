@@ -231,7 +231,29 @@
     const stat = (k, v) => `<div class="card stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
     const ago = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
     const q = String(U.allQ || '').trim().toLowerCase();
+    // free 3-day trial: the owner's 'trial3' licence, and no paid licence in the business
+    // (trial_ends_at / paid come from pe_master_overview; older servers: worked out from the staff list)
+    const trialOf = (b) => {
+      let ends = b.trial_ends_at, paid = b.paid;
+      if (paid == null) {
+        const st = staffOf(b);
+        paid = st.some((m) => m.license_type && m.license_type !== 'trial3');
+        const t = st.filter((m) => m.role === 'Owner' && m.license_type === 'trial3' && m.expires_at).map((m) => new Date(m.expires_at).getTime());
+        ends = t.length ? Math.max(...t) : null;
+      }
+      if (paid || !ends) return null;
+      const at = new Date(ends).getTime();
+      return { at, over: at <= Date.now() };
+    };
+    const trialChip = (b) => {
+      const t = trialOf(b); if (!t) return '';
+      const when = new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      return t.over ? `<span class="chip red pe-trial" title="Trial ended ${esc(when)}">Trial – expired</span>`
+        : `<span class="chip amber pe-trial" title="Free 3-day trial">Trial – ends ${esc(when)}</span>`;
+    };
     const lic = (b) => {
+      const tc = trialChip(b);
+      if (tc) return tc;
       const st = staffOf(b), ok = st.filter((m) => licOk({ type: m.license_type, expires: m.expires_at }));
       if (!st.length) return '<span class="mut">—</span>';
       const tone = ok.length === st.length ? 'green' : ok.length ? 'amber' : 'red';
@@ -264,7 +286,7 @@
     const refreshBtn = `<button class="btn sm" data-act="peAllRefresh"${ALLB.busy ? ' disabled' : ''}>${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
     const body = !L ? `<div class="pad mut">Loading…</div>`
       : !L.length ? `<div class="pad pe-allempty" style="text-align:center;padding:40px 20px">${ic('building', 40)}<div style="font-weight:650;font-size:16px;margin-top:8px">No businesses yet</div><div class="small mut" style="margin:4px auto 14px;max-width:420px">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">${addBtn}${portalBtn}${refreshBtn}</div></div>`
-      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Site</th><th>Licences</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Site</th><th>Licence / trial</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
       : `<div class="pad mut">Nothing matches “${esc(U.allQ)}”.</div>`;
     return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Sites', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
