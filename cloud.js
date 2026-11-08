@@ -137,6 +137,20 @@
   function mayWrite(row, team) {
     const admin = O.role === 'Owner' || O.role === 'Admin', mgr = O.role === 'Manager';
     const c = row.coll, m = row.member_id;
+    // features and sites switched off for me (the server checks the same, see 004_access_model.sql)
+    if (!admin && !O.asMaster) {
+      const mine = S.members.find((x) => x.id === O.member) || {};
+      const off = (f) => !!(mine.features && mine.features[f] === false);
+      const others = !m || m !== O.member;
+      const f = c === 'entries' ? (others && 'timesheets') : c === 'approvals' ? 'approvals'
+        : c === 'shifts' || c === 'needs' || c === 'rotaSettings' ? 'rota' : c === 'tasks' || c === 'taskTemplates' ? 'tasks'
+        : c === 'requests' ? (others && 'timeoff') : c === 'docs' ? (others && 'documents')
+        : c === 'members' || c === 'secrets' ? (others && 'users') : c === 'exports' ? 'reports' : c === 'ai' ? 'ai' : null;
+      if (f && off(f)) return false;
+      const sites = Array.isArray(mine.sites) && mine.sites.length ? mine.sites : null;
+      const loc = row.data && row.data.location;
+      if (sites && loc && (others || c === 'needs' || c === 'taskTemplates') && ['entries', 'shifts', 'tasks', 'needs', 'taskTemplates'].includes(c) && !sites.includes(loc)) return false;
+    }
     if (SHARED.has(c)) return admin || (mgr && ['needs', 'rotaSettings', 'taskTemplates'].includes(c));
     if (c === 'notes') return admin || mgr;          // staff leave requests are announced by the server
     if (c === 'audit') return true;
@@ -517,6 +531,7 @@
     }
   }
   O.invited = new Set();
+  O.loadInviteState = () => loadInviteState();
   async function loadInviteState() {
     if (!['Owner', 'Admin', 'Manager'].includes(O.role)) return;
     const [p, i] = await Promise.all([O.sb.from('pe_people').select('member_id').eq('org_id', O.org), O.sb.from('pe_invites').select('member_id').eq('org_id', O.org)]);
