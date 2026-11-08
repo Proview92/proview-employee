@@ -379,8 +379,9 @@
     A.pePickOrg({ value: id });
   };
   // a new business with the app's own create-company flow (the master becomes its owner; 3-day trial)
-  A.peAddBiz = () => openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Add a business</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="small mut" style="margin:6px 0 4px">Creates the business with you as its owner, on a 3-day trial. Add its sites under Locations, and licences in the <a href="${LIC_PORTAL}" target="_blank" rel="noopener">licence portal</a>.</p><label class="f">Business name</label><input class="inp" id="peBizName" placeholder="Business name" autocomplete="organization"><div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="peAddBizGo">Create business</button></div></div>`, 440);
+  A.peAddBiz = () => O.master && openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Add a business</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="small mut" style="margin:6px 0 4px">Creates the business with you as its owner, on a 3-day trial. Add its sites under Locations, and licences in the <a href="${LIC_PORTAL}" target="_blank" rel="noopener">licence portal</a>.</p><label class="f">Business name</label><input class="inp" id="peBizName" placeholder="Business name" autocomplete="organization"><div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="peAddBizGo">Create business</button></div></div>`, 440);
   A.peAddBizGo = async () => {
+    if (!O.master) return;   // only the master adds businesses
     const company = ($('#peBizName')?.value || '').trim();
     if (!company) return toast('Enter the business name', 'bad');
     A.closeModal();
