@@ -62,6 +62,7 @@
     chat: {
       me: () => ({ id: S.me }),
       teamName: () => (S.org && S.org.name) || 'Everyone',
+      unavailable: () => (window.PE_ONLINE && window.PE_ONLINE.home ? 'Choose a location in the dropdown first to see its team chat.' : ''),
       people: () => (typeof activeMembers === 'function' ? activeMembers() : []).map((m) => ({ id: m.id, name: m.name, sub: m.role })),
       cached: () => visibleChat().map((m) => ({ ...m, to: m.to || 'all', byName: nameOf(m.by) })),
       async send(conv, text) {

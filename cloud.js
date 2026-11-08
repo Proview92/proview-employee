@@ -373,7 +373,7 @@
     O.applying = true;
     try { S = finishState(stateFromRows([])); } finally { O.applying = false; }
     S.members.push({ id: O.member, name: 'Proview (master admin)', role: 'Owner', email: O.user.email, group: '', archived: false, color: '#5a5fbb', _virtual: true });
-    S.org.name = 'All sites';
+    S.org.name = 'Locations';
     O.ready = true;
     setLoading('');
     LG = { id: '', show: false, err: '', keep: true };
@@ -518,7 +518,7 @@
   <h1>Set up your business</h1><p class="auth2-mut">Start your free 3-day trial. You’ll be the owner, and can add your team straight away.</p>
   <div>${LG.err ? `<div class="lg-err" role="alert">${esc(LG.err)}</div>` : ''}</div>
   <label class="field2">Business name<input id="stBiz" autocomplete="organization" placeholder="Your business" value="${esc(st.biz || '')}"></label>
-  <label class="field2">First site<input id="stSite" placeholder="Same as the business name" value="${esc(st.site || '')}"></label>
+  <label class="field2">First location<input id="stSite" placeholder="Same as the business name" value="${esc(st.site || '')}"></label>
   <p class="auth2-mut" style="margin:0;font-size:13px">Signed in as <b>${esc(O.user?.email || '')}</b></p>
   <button class="btn2 pri2" type="submit">Start free trial</button>
   <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="signOut">Sign out</button></div>

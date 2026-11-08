@@ -1,5 +1,5 @@
 /* Proview hub: the shared header tray (status, search, chat, inbox, bell),
-   search palette, team chat panel and inbox panel. The same file is used by
+   search palette, team chat panel, inbox panel and the avatar's account menu. The same file is used by
    Proview Employee and Proview Signage; each app passes in its own data
    through PVHub.init(adapter). */
 (function () {
@@ -16,6 +16,8 @@
     page: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
     grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   };
   const svg = (k, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SVG[k] || k}</svg>`;
@@ -40,6 +42,15 @@
 .pv-dash svg{width:17px!important;height:17px!important}
 @media (max-width:700px){.pv-dash{width:34px;height:34px;padding:0;justify-content:center}.pv-dash span{display:none}}
 @media (max-width:700px){.hdr-cap{padding:2px;gap:0}.hdr-cap>button,.hdr-cap>a{width:30px;min-width:30px;height:30px}.hdr-dot{margin:0 6px}}
+.hdr-cap>button:focus-visible,.hdr-cap>a:focus-visible,.pv-dash:focus-visible{outline:2px solid #5a8dee;outline-offset:2px}
+.pv-acct{position:fixed;z-index:310;width:264px;max-width:calc(100vw - 16px);background:#fff;border:1px solid #e4e2dc;border-radius:12px;box-shadow:0 12px 32px rgba(20,20,30,.16);padding:6px;font-size:14px;color:#17171c;box-sizing:border-box}
+.pv-acct-h{display:flex;align-items:center;gap:10px;padding:8px 8px 12px;margin-bottom:6px;border-bottom:1px solid #eceae4;min-width:0}
+.pv-acct-h .ct{flex:1;min-width:0}.pv-acct-h b{display:block;font-size:14px;font-weight:700;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-acct-h small{display:block;font-size:12.5px;line-height:17px;color:#8b8b95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-acct-i{display:flex;align-items:center;gap:10px;width:100%;height:36px;padding:0 10px;border-radius:8px;border:0;background:none;font:inherit;font-size:14px;font-weight:550;color:#17171c!important;text-decoration:none!important;cursor:pointer;text-align:left;box-sizing:border-box}
+.pv-acct-i:hover,.pv-acct-i:focus-visible{background:#f3f2ee;outline:0}
+.pv-acct-i svg{width:17px!important;height:17px!important;color:#4a4a55;flex:none}
+.pv-acct-sep{height:1px;background:#eceae4;margin:6px 4px}
 .hub-bg{position:fixed;inset:0;background:rgba(20,20,26,.38);z-index:300;display:flex}
 .hub-pal{margin:12vh auto auto;width:min(580px,92vw);background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden;font-size:15px;color:#17171c}
 .hub-pal .hp-in{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #eceae4;color:#8b8b95}
@@ -134,7 +145,7 @@
   /** Build the tray: [status dot, search, chat, inbox, bell]. bellEl is the app's own bell button. */
   function tray({ dot, bell }) {
     const cap = document.createElement('div'); cap.className = 'hdr-cap';
-    if (!dot) { dot = document.createElement('span'); dot.className = 'hdr-dot'; dot.title = 'Online'; }
+    if (!dot) { dot = document.createElement('span'); dot.className = 'hdr-dot'; dot.title = 'Online'; dot.setAttribute('role', 'img'); dot.setAttribute('aria-label', 'Online'); }
     dot.classList.add('hdr-dot');
     cap.appendChild(dot);
     cap.appendChild(btn('search', 'Search (Ctrl+K)', openSearch));
@@ -264,9 +275,44 @@
     draw();
   }
 
+  /* ---------------- account menu (the avatar in the header) ---------------- */
+  // PVHub.accountMenu(avatarButton, { name, email, sub, items: [{ label, icon, href | run, sep }] })
+  // Opens under the avatar, right-aligned to it. Click the avatar again, click outside, press Esc,
+  // pick an item or change page to close. Up/Down move between items.
+  let acct = null;
+  function closeAccount() { if (!acct) return; acct.el.remove(); acct.btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', acct.out, true); document.removeEventListener('keydown', acct.key, true); removeEventListener('hashchange', closeAccount); acct = null; }
+  function accountMenu(btn, o) {
+    if (acct) { const was = acct.btn; closeAccount(); if (was === btn) return; }
+    const m = document.createElement('div'); m.className = 'pv-acct'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', 'My account');
+    m.innerHTML = `<div class="pv-acct-h"><span class="hub-av">${esc(o.initials || initials(o.name || o.email))}</span><span class="ct"><b>${esc(o.name || '')}</b>${o.email ? `<small>${esc(o.email)}</small>` : ''}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></div>`;
+    (o.items || []).forEach((it) => {
+      if (it.sep) { const d = document.createElement('div'); d.className = 'pv-acct-sep'; m.appendChild(d); }
+      const el = document.createElement(it.href ? 'a' : 'button'); el.className = 'pv-acct-i'; el.setAttribute('role', 'menuitem');
+      if (it.href) { el.href = it.href; if (/^https?:/.test(it.href)) { el.target = '_self'; } } else el.type = 'button';
+      el.innerHTML = svg(it.icon || 'page', 17) + `<span>${esc(it.label)}</span>`;
+      el.addEventListener('click', (e) => { closeAccount(); if (it.run) { e.preventDefault(); it.run(); } });
+      m.appendChild(el);
+    });
+    document.body.appendChild(m);
+    const r = btn.getBoundingClientRect();
+    m.style.top = Math.round(r.bottom + 8) + 'px';
+    m.style.right = Math.max(8, Math.round(innerWidth - r.right)) + 'px';
+    const items = () => [...m.querySelectorAll('.pv-acct-i')];
+    acct = { el: m, btn,
+      out: (e) => { if (!m.contains(e.target) && !btn.contains(e.target)) closeAccount(); },
+      key: (e) => {
+        if (e.key === 'Escape') { e.stopPropagation(); closeAccount(); btn.focus(); return; }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const l = items(), i = l.indexOf(document.activeElement); l[(i + (e.key === 'ArrowDown' ? 1 : -1) + l.length) % l.length]?.focus(); }
+      } };
+    btn.setAttribute('aria-expanded', 'true');
+    document.addEventListener('mousedown', acct.out, true); document.addEventListener('keydown', acct.key, true);
+    addEventListener('hashchange', closeAccount);
+    if (o.focusFirst) items()[0]?.focus();
+  }
+
   window.PVHub = {
     init(adapter) { A = adapter; paint(); },
     adapter: () => A,
-    tray, dashLink, paint, chatChanged, openSearch, openChat, openInbox, close, svg, initials,
+    tray, dashLink, accountMenu, closeAccount, paint, chatChanged, openSearch, openChat, openInbox, close, svg, initials,
   };
 })();

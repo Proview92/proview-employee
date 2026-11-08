@@ -196,7 +196,7 @@
     const groups = pickGroups();
     const staff = typeof isStaff === 'function' && isStaff() && !O.asMaster;
     const cur = groups.find((g) => g.id === O.org);
-    const box = (t) => `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Choose site" title="${esc(t)}" disabled><option>${esc(t)}</option></select></div>`;
+    const box = (t) => `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location" title="${esc(t)}" disabled><option>${esc(t)}</option></select></div>`;
     // one business with one site (or staff, who have no business-wide view): its name, in the same box, disabled
     if (!O.master && groups.length <= 1) {
       if (!cur) return '';
@@ -210,7 +210,7 @@
     let opts;
     if (!O.master && groups.length === 1) {
       // one business: "All my sites (N)" + each of their sites, no business prefix
-      opts = opt(cur.id + '|', `All my sites (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
+      opts = opt(cur.id + '|', `All my locations (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
     } else if (O.master) {
       // master (owner's simpler list): just the site names, sorted; " · Business" only when two share a name.
       // Businesses with no sites aren't listed (they're on the All sites page, as is each business's whole view).
@@ -221,19 +221,20 @@
       list.sort((a, b) => String(a.t).localeCompare(String(b.t)));
       // a whole business opened from the All sites page has no entry: show it as the (hidden) current choice
       const curV = `${O.org}|${here}`;
-      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ' (all sites)')}</option>` : '')
+      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ' (all locations)')}</option>` : '')
         + list.map((x) => opt(x.v, x.t)).join('');
     } else {
       // someone in several businesses: one group per business, "Business ▸ All my sites" first
-      const whole = O.master ? 'All sites' : 'All my sites';
+      const whole = O.master ? 'All locations' : 'All my locations';
       opts = groups.map((g) => {
         const o = staff && g.id === O.org ? opt(g.id + '|', g.name)
           : opt(g.id + '|', g.name + ARROW + whole) + (g.sites || []).map((x) => opt(g.id + '|' + x.id, g.name + ARROW + x.name)).join('');
         return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
       }).join('');
     }
-    const allOpt = O.master ? `<option value="__all"${all ? ' selected' : ''}>All sites (${nSites})</option>` : '';
-    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Choose site" data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
+    const allOpt = O.master ? `<option value="__all"${all ? ' selected' : ''}>All locations (${nSites})</option>` : '';
+    const curT = ((allOpt + opts).match(/<option [^>]*selected[^>]*>([^<]*)<\/option>/) || [])[1] || '';
+    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location"${curT ? ` title="${curT}"` : ''} data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
   }
   // the chosen site is remembered per person, per business, on this device (cleared at sign-out, see cloud.js)
   const siteKey = (org) => (O.user && org ? `pe-site:${O.user.id}:${org}` : '');
@@ -271,7 +272,7 @@
   };
   /* ---------------- "All sites" (master admins): every business and its sites ----------------
      The master's landing page (no business open, O.home), and also reachable from the picker. */
-  TITLES.allbiz = 'All sites';
+  TITLES.allbiz = 'Locations';
   const ALLB = { list: null, sites: null, busy: false, at: 0, err: '', siteErr: false };
   U.allQ = U.allQ || '';
   async function loadAll(force) {
@@ -293,7 +294,7 @@
         all.push(...data); if (data.length < 1000) break; from += 1000;
       }
       const by = new Map();
-      all.forEach((r) => { if (r.data && r.data.archived) return; if (!by.has(r.org_id)) by.set(r.org_id, []); by.get(r.org_id).push({ id: r.id, name: (r.data && r.data.name) || 'Site', address: (r.data && r.data.address) || '' }); });
+      all.forEach((r) => { if (r.data && r.data.archived) return; if (!by.has(r.org_id)) by.set(r.org_id, []); by.get(r.org_id).push({ id: r.id, name: (r.data && r.data.name) || 'Location', address: (r.data && r.data.address) || '' }); });
       ALLB.sites = by; ALLB.siteErr = false;
     } catch (e) { ALLB.sites = ALLB.sites || new Map(); ALLB.siteErr = true; }
     ALLB.at = Date.now(); ALLB.busy = false;
@@ -351,7 +352,7 @@
       const bizCell = (span) => `<td class="c-biz"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top"><b>${esc(b.name)}</b>${b.contact_email ? `<div class="small mut">${esc(b.contact_email)}</div>` : ''}${b.suspended ? ' <span class="chip red">Suspended</span>' : ''}<div class="tiny mut">${staffOf(b).length} staff · last active ${esc(ago(b.last_active))}</div></td>`;
       const licCell = (span) => `<td class="c-lic"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top">${lic(b)}</td>`;
       if (!shown.length) {
-        rows.push(`<tr class="pe-first">${bizCell(1)}<td class="c-site mut">${ALLB.siteErr ? 'Sites couldn’t load' : 'No sites yet'}</td>${licCell(1)}<td class="c-open" style="text-align:right">${openBtn(b)}</td></tr>`);
+        rows.push(`<tr class="pe-first">${bizCell(1)}<td class="c-site mut">${ALLB.siteErr ? 'Locations couldn’t load' : 'No locations yet'}</td>${licCell(1)}<td class="c-open" style="text-align:right">${openBtn(b)}</td></tr>`);
         return;
       }
       shown.forEach((x, i) => rows.push(`<tr${i ? '' : ' class="pe-first"'}>${i ? '' : bizCell(shown.length)}<td class="c-site"><b>${esc(x.name)}</b>${x.address ? `<div class="small mut">${esc(x.address)}</div>` : ''}</td>${i ? '' : licCell(shown.length)}<td class="c-open" style="text-align:right">${openBtn(b, x)}</td></tr>`));
@@ -363,12 +364,12 @@
     const refreshBtn = `<button class="btn sm" data-act="peAllRefresh"${ALLB.busy ? ' disabled' : ''}>${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
     const body = !L ? `<div class="pad mut">Loading…</div>`
       : !L.length ? `<div class="pad pe-allempty" style="text-align:center;padding:40px 20px">${ic('building', 40)}<div style="font-weight:650;font-size:16px;margin-top:8px">No businesses yet</div><div class="small mut" style="margin:4px auto 14px;max-width:420px">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">${addBtn}${portalBtn}${refreshBtn}</div></div>`
-      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Site</th><th>Licence / trial</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Location</th><th>Licence / trial</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
       : `<div class="pad mut">Nothing matches “${esc(U.allQ)}”.</div>`;
-    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Sites', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
+    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Locations', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      <div class="card pe-allsites"><div class="pad row between" style="flex-wrap:wrap;gap:10px"><div><b style="font-size:16px">All sites</b><div class="small mut">Every business and its sites. Open one to see it as its owner does.</div></div><div class="row" style="gap:8px;flex-wrap:wrap">${L && L.length ? addBtn + portalBtn + refreshBtn : ''}</div></div>
-      ${many || q ? `<div style="padding:0 14px 12px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and sites…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and sites"></div></div>` : ''}${body}</div>`;
+      <div class="card pe-allsites"><div class="pad row between" style="flex-wrap:wrap;gap:10px"><div><b style="font-size:16px">Locations</b><div class="small mut">Every business and its locations. Open one to see it as its owner does.</div></div><div class="row" style="gap:8px;flex-wrap:wrap">${L && L.length ? addBtn + portalBtn + refreshBtn : ''}</div></div>
+      ${many || q ? `<div style="padding:0 14px 12px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and locations…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and locations"></div></div>` : ''}${body}</div>`;
   };
   AFTER.allbiz = function () { loadAll(false); };
   A.peAllRefresh = () => { loadAll(true); render(); };
@@ -379,7 +380,7 @@
     A.pePickOrg({ value: id });
   };
   // a new business with the app's own create-company flow (the master becomes its owner; 3-day trial)
-  A.peAddBiz = () => O.master && openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Add a business</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="small mut" style="margin:6px 0 4px">Creates the business with you as its owner, on a 3-day trial. Add its sites under Locations, and licences in the <a href="${LIC_PORTAL}" target="_blank" rel="noopener">licence portal</a>.</p><label class="f">Business name</label><input class="inp" id="peBizName" placeholder="Business name" autocomplete="organization"><div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="peAddBizGo">Create business</button></div></div>`, 440);
+  A.peAddBiz = () => O.master && openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Add a business</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div><p class="small mut" style="margin:6px 0 4px">Creates the business with you as its owner, on a 3-day trial. Add its locations under Settings → Locations, and licences in the <a href="${LIC_PORTAL}" target="_blank" rel="noopener">licence portal</a>.</p><label class="f">Business name</label><input class="inp" id="peBizName" placeholder="Business name" autocomplete="organization"><div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="peAddBizGo">Create business</button></div></div>`, 440);
   A.peAddBizGo = async () => {
     if (!O.master) return;   // only the master adds businesses
     const company = ($('#peBizName')?.value || '').trim();
@@ -412,7 +413,7 @@
     if (h2) h2.insertAdjacentHTML('afterend', h); else top.insertAdjacentHTML('afterbegin', h);
   };
   // short names under the icons in the narrow iPad sidebar (same as Proview Bookings)
-  const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Locations', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', locations: 'Sites', projects: 'Projects', organization: 'Company',
+  const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Locations', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', locations: 'Locations', projects: 'Projects', organization: 'Company',
     sHome: 'Home', sClock: 'Clock', sTasks: 'Tasks', sSheets: 'Timesheets', sP45: 'Payslips' };
   const _renderNav3 = renderNav;
   renderNav = function () {
@@ -456,13 +457,13 @@
     document.body.classList.toggle('pe-allmode', allMode());
     if (!O.ready || !O.master) return;
     const on = allMode();
-    nv.insertAdjacentHTML('afterbegin', `<button class="pe-all-nav${on ? ' on' : ''}" data-act="peAllSites" title="All sites"${on ? ' aria-current="page"' : ''}>${ic('building', 19)}<span class="lbl">All sites</span><span class="slbl">All sites</span></button>`);
+    nv.insertAdjacentHTML('afterbegin', `<button class="pe-all-nav${on ? ' on' : ''}" data-act="peAllSites" title="Locations"${on ? ' aria-current="page"' : ''}>${ic('building', 19)}<span class="lbl">Locations</span><span class="slbl">Locations</span></button>`);
     if (!on) return;
     nv.querySelectorAll(':scope > button:not(.pe-all-nav)').forEach((b) => {
       const name = b.querySelector('.lbl')?.textContent || b.title || '';
       b.classList.remove('on'); b.classList.add('pe-off');
       b.setAttribute('aria-disabled', 'true'); b.dataset.act = 'peNeedSite';
-      b.title = name + ' – choose a site first';
+      b.title = name + ' – choose a location first';
     });
   };
   // any other toast goes back to the app's usual place
@@ -470,7 +471,7 @@
   toast = function () { document.getElementById('toast')?.classList.remove('pe-toast-bottom'); return _toastPE.apply(this, arguments); };
   A.peAllSites = () => { if (U.view === 'allbiz' || O.home) { U.view = 'allbiz'; render(); return; } A.pePickOrg({ value: '__all' }); };
   A.peNeedSite = () => {
-    toast('Choose a site in the dropdown first', 'bad');
+    toast('Choose a location in the dropdown first', 'bad');
     document.getElementById('toast')?.classList.add('pe-toast-bottom');   // phones: not over the drop-down it points at
     const s = document.querySelector('#top .hdr-pick select'); if (!s) return;
     const w = s.closest('.hdr-pick');
@@ -516,7 +517,7 @@ body.dark .top .hdr-pick select { background-color: var(--card); }
   css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:16px}.lic-banner>svg{flex:none;align-self:flex-start;margin-top:2px}.lic-banner .lic-txt{flex:1;min-width:200px}.lic-banner .lic-btn{flex:none;margin-left:auto;text-decoration:none}.lic-banner.ok{border-color:var(--line);background:var(--card);color:var(--ink)}@media (max-width:700px){.lic-banner .lic-btn{width:100%;justify-content:center;margin-left:0;min-height:40px}}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
   document.head.appendChild(css2);
   const css4 = document.createElement('style');
-  css4.textContent = `body.pe-home #tabbar,body.pe-home .clockbox,body.pe-home [data-act=notifs],body.pe-home .hub-chat,body.pe-home .hub-inbox,body.pe-home .side-foot [data-act=kiosk],body.pe-home .top>span[style*="width:1px"]{display:none!important}body.pe-home #venueCard{pointer-events:none}
+  css4.textContent = `body.pe-home #tabbar,body.pe-home .clockbox,body.pe-home .side-foot [data-act=kiosk],body.pe-home .top>span[style*="width:1px"]{display:none!important}body.pe-home #venueCard{pointer-events:none}
 .pe-allsites .search{max-width:420px}.pe-allsites td .btn{white-space:nowrap}
 @media (max-width:700px){.pe-sites table.t,.pe-sites tbody{display:block;min-width:0}.pe-sites thead{display:none}.pe-sites tr{display:flex;flex-wrap:wrap;align-items:center}.pe-sites tr.pe-first{border-top:1px solid var(--line)}.pe-sites td{display:block;border:0!important}
 .pe-sites td.c-biz{order:1;flex:1 1 100%;min-width:0;padding-bottom:2px}.pe-sites td.c-lic{order:2;flex:1 1 100%;padding-top:2px;padding-bottom:4px}.pe-sites td.c-lic .tiny{display:inline;margin-left:6px}.pe-sites td.c-site{order:3;flex:1 1 0;min-width:0;padding:6px 10px 6px 22px}.pe-sites td.c-open{order:4;flex:0 0 auto;padding:6px 10px}}`;
