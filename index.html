@@ -6,6 +6,7 @@
 <title>Proview Employee</title>
 <link rel="icon" type="image/png" href="icon-32.png?v=2">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
+<script>try{if(localStorage.getItem('pv-splash-dark')==='1')document.documentElement.classList.add('pv-dark')}catch(e){}</script>
 <style>
 :root{--pri:#4a6cd0;--pri-d:#3a59b8;--pri-l:#edf2fd;--grad:linear-gradient(135deg,#2f84d4 0%,#5a5fbb 100%);--grad-light:linear-gradient(90deg,#62b0ec 0%,#8b88dc 100%);--navy:#141418;--navy2:#26262e;--bg:#f4f3ef;--card:#fff;--ink:#17171c;--mut:#55555f;--line:#e4e2dc;--ok:#12a150;--okl:#e7f6ed;--warn:#d48a00;--warnl:#fdf3de;--bad:#d92d20;--badl:#fdf0ef;--pur:#6d5fc4;--purl:#efedfb;--grey:#8b8b95;--greyl:#efeee9;--r:12px;--sh:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05)}
 body.dark{--bg:#0e0e11;--card:#18181d;--ink:#ececf1;--mut:#9a9aa5;--line:#2a2a32;--pri-l:#232a45;--greyl:#23232a;--okl:#0f2e26;--warnl:#33280e;--badl:#3a1820;--purl:#271c47}
@@ -871,10 +872,26 @@ html .auth2-mark.auth2-mark.auth2-mark.auth2-mark{width:30px!important;height:30
 html .auth2-logo.auth2-logo.auth2-logo.auth2-logo,html .auth2-fbrand .logo.logo.logo.logo{width:60px!important;height:60px!important}
 html .lg-head .logo.logo.logo.logo{width:56px!important;height:56px!important}
 html .wordmark span,html .wordmark span.x.x,html .wordmark2 span,html .wordmark2 span.x.x,html .wm span,html .fcols .brand .wm span{background:linear-gradient(90deg,#10B981 0%,#047857 100%)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+/* Loading splash (the Proview standard, as Proview Bookings): only the 72px app icon, centred on the page background,
+   with a 1.2s pulse, until the sign-in state is known. Everything else stays hidden so the sign-in form never flashes. */
+.pv-splash{display:none}
+body.pv-booting .pv-splash{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:2147483000}
+html.pv-dark body.pv-booting .pv-splash{background:#0e0e11}
+body.pv-booting>:not(.pv-splash){visibility:hidden!important}
+html .pv-splash .logo.logo.logo.logo{width:72px!important;height:72px!important;opacity:.9;animation:pvsplash 1.2s ease-in-out infinite}
+@keyframes pvsplash{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){html .pv-splash .logo.logo.logo.logo{animation:none}}
 </style>
 <script src="config.js"></script>
 </head>
-<body>
+<body class="pv-booting">
+<div class="pv-splash" role="status" aria-label="Loading Proview Employee"><div class="logo"></div></div>
+<script>
+// Ends the loading splash (called once the sign-in state is known). Failsafe: after 8 seconds the page shows anyway
+// (the sign-in page, or its "can't reach the server" message), so nobody is left on the splash.
+window.pvSplashDone=function(){document.body.classList.remove('pv-booting')};
+setTimeout(function(){window.pvSplashDone()},8000);
+</script>
 <div class="app" id="app">
   <aside class="side">
     <div class="brand"><div class="logo" role="img" aria-label="Proview logo"></div><span class="wordmark">PROVIEW<span>EMPLOYEE</span></span><button class="collapse-btn" data-act="collapse" title="Collapse menu"></button></div>
@@ -2469,9 +2486,9 @@ const _renderNavS=renderNav;renderNav=function(){if(!isStaff()){_renderNavS();$(
  $('#sideFoot').innerHTML=`<button data-act="collapse" title="Collapse menu" style="background:none;border:0;color:#8b8b95;letter-spacing:.06em;font-size:12px">${ic('left',14)}<span class="lbl">COLLAPSE</span></button><button data-act="signOut" title="Sign out" style="background:none;border:0;color:#8b8b95;letter-spacing:.06em;font-size:12px;margin-left:auto">${ic('logout',14)}<span class="lbl">SIGN OUT</span></button>`};
 const _renderTopS=renderTop;renderTop=function(){if(!isStaff())return _renderTopS();const unread=S.notes.filter(n=>!n.read).length;const r=realUser();
  $('#top').innerHTML=`<button class="icon-btn menu-btn" data-act="navToggle" title="Menu" aria-label="Open menu">${ic('burger',20)}</button><h2>${TITLES[U.view]||''}</h2><div class="sp"></div>${r&&r.role!=='Member'&&r.id!==S.me?`<button class="btn sm" data-act="backToAdmin">${ic('left',14)} Admin view</button>`:''}<span class="chip ${status(S.me)==='in'?'green':status(S.me)==='break'?'amber':''} hide-sm">${status(S.me)==='in'?'Working':status(S.me)==='break'?'On break':'Clocked out'}</span><button class="icon-btn" data-act="notifs" title="Notifications">${ic('bell')}${unread?`<span class="badge">${unread}</span>`:''}</button><button class="icon-btn hide-sm" data-act="signOut" title="Sign out">${ic('logout')}</button><button class="top-av" data-act="sProfile" aria-label="My profile" style="background:${me()?.color||'var(--pri)'}">${esc(initials(me()?.name))}</button>`};
-const _renderS=renderNow;renderNow=function(){const lg=$('#login');if(!realUser()){document.body.classList.add('signed-out');document.body.classList.toggle('dark',!!S.settings.dark);renderLogin();return}
+const _renderS=renderNow;renderNow=function(){const lg=$('#login');if(!realUser()){document.body.classList.add('signed-out');document.body.classList.toggle('dark',!!S.settings.dark);renderLogin();if(!window.PE_CONFIG)pvSplashDone();return}
  document.body.classList.remove('signed-out');lg.innerHTML='';document.body.classList.toggle('staff',isStaff());
- if(isStaff()&&!STAFF_NAV.some(n=>n[0]===U.view))U.view='sHome';if(!isStaff()&&U.view.startsWith('s')&&STAFF_NAV.some(n=>n[0]===U.view))U.view='dashboard';_renderS()};
+ if(isStaff()&&!STAFF_NAV.some(n=>n[0]===U.view))U.view='sHome';if(!isStaff()&&U.view.startsWith('s')&&STAFF_NAV.some(n=>n[0]===U.view))U.view='dashboard';_renderS();pvSplashDone();try{localStorage.setItem('pv-splash-dark',S.settings.dark?'1':'0')}catch(e){}};
 A.sProfile=()=>{A.navClose?.();const m=me();openDrawer('My profile',`<div class="row" style="margin:16px 0;flex-wrap:nowrap"><div class="av" style="width:52px;height:52px;font-size:18px;background:${m.color}">${esc(initials(m.name))}</div><div><b style="font-size:16px">${esc(m.name)}</b><div class="mut small">${esc(m.role)} · ${esc(grp(m.group)?.name||'No group')}</div></div></div>
  <div class="kv"><span>Email</span><b>${esc(m.email||'Not set')}</b></div><div class="kv"><span>Phone</span><b>${esc(m.phone||'Not set')}</b></div><div class="kv"><span>Schedule</span><b>${esc(sched(m)?.name||'None')}</b></div><div class="kv"><span>Kiosk PIN</span><b>••••</b></div>
  <div class="nav-sec" style="padding:18px 0 6px">Change password</div><label class="f" style="margin-top:0">New password</label><input class="inp" type="password" id="npw1" autocomplete="new-password" placeholder="At least 8 characters"><label class="f">Confirm new password</label><input class="inp" type="password" id="npw2" autocomplete="new-password">`,

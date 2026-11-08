@@ -726,6 +726,7 @@
       if (!O.user || !box) { LG.mode = 'signin'; return renderLogin(); }
       box.innerHTML = setupForm();
       if (loadingMsg) { box.querySelectorAll('input,button').forEach((x) => (x.disabled = true)); const b = box.querySelector('button.pri2'); if (b) b.textContent = loadingMsg; }
+      else if (window.pvSplashDone) window.pvSplashDone();
       return;
     }
     // email only (no phone sign-in)
@@ -743,6 +744,8 @@
       if (f) f.querySelectorAll('input,button').forEach((x) => (x.disabled = true));
       const b = el.querySelector('button.pri2'); if (b) b.textContent = loadingMsg;
     }
+    // the sign-in state is known (no session, or a message to show): end the loading splash
+    if (!loadingMsg && window.pvSplashDone) window.pvSplashDone();
   };
 
   const PV_ACCOUNT = 'https://dashboard.proviewcrm.co.uk/';
