@@ -211,8 +211,20 @@
     if (!O.master && groups.length === 1) {
       // one business: "All my sites (N)" + each of their sites, no business prefix
       opts = opt(cur.id + '|', `All my sites (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
+    } else if (O.master) {
+      // master (owner's simpler list): just the site names, sorted; " · Business" only when two share a name.
+      // Businesses with no sites aren't listed (they're on the All sites page, as is each business's whole view).
+      const list = [];
+      groups.forEach((g) => (g.sites || []).forEach((x) => list.push({ v: g.id + '|' + x.id, name: x.name, biz: g.name })));
+      const dup = new Map(); list.forEach((x) => { const k = String(x.name).trim().toLowerCase(); dup.set(k, (dup.get(k) || 0) + 1); });
+      list.forEach((x) => { x.t = dup.get(String(x.name).trim().toLowerCase()) > 1 ? x.name + ' · ' + x.biz : x.name; });
+      list.sort((a, b) => String(a.t).localeCompare(String(b.t)));
+      // a whole business opened from the All sites page has no entry: show it as the (hidden) current choice
+      const curV = `${O.org}|${here}`;
+      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ARROW + 'All sites')}</option>` : '')
+        + list.map((x) => opt(x.v, x.t)).join('');
     } else {
-      // master (and someone in several businesses): one group per business, "Business ▸ All sites" first
+      // someone in several businesses: one group per business, "Business ▸ All my sites" first
       const whole = O.master ? 'All sites' : 'All my sites';
       opts = groups.map((g) => {
         const o = staff && g.id === O.org ? opt(g.id + '|', g.name)
