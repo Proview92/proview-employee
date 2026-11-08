@@ -366,10 +366,11 @@
       : !L.length ? `<div class="pad pe-allempty" style="text-align:center;padding:40px 20px">${ic('building', 40)}<div style="font-weight:650;font-size:16px;margin-top:8px">No businesses yet</div><div class="small mut" style="margin:4px auto 14px;max-width:420px">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">${addBtn}${portalBtn}${refreshBtn}</div></div>`
       : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Location</th><th>Licence / trial</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
       : `<div class="pad mut">Nothing matches “${esc(U.allQ)}”.</div>`;
-    return `<div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Locations', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
+    const headBtns = L && L.length ? (addBtn + portalBtn + refreshBtn).replace(/class="btn sm/g, 'class="btn') : '';
+    return `<div class="pv-loc"><div class="pv-ph"><div><h1>Locations</h1><p class="mut">Every business and its locations. Open one to see it as its owner does.</p></div><div class="row" style="gap:8px;flex-wrap:wrap">${headBtns}</div></div>
+      <div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Locations', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      <div class="card pe-allsites"><div class="pad row between" style="flex-wrap:wrap;gap:10px"><div><b style="font-size:16px">Locations</b><div class="small mut">Every business and its locations. Open one to see it as its owner does.</div></div><div class="row" style="gap:8px;flex-wrap:wrap">${L && L.length ? addBtn + portalBtn + refreshBtn : ''}</div></div>
-      ${many || q ? `<div style="padding:0 14px 12px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and locations…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and locations"></div></div>` : ''}${body}</div>`;
+      <div class="card pe-allsites">${many || q ? `<div style="padding:12px 14px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and locations…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and locations"></div></div>` : ''}${body}</div></div>`;
   };
   AFTER.allbiz = function () { loadAll(false); };
   A.peAllRefresh = () => { loadAll(true); render(); };
@@ -457,7 +458,7 @@
     document.body.classList.toggle('pe-allmode', allMode());
     if (!O.ready || !O.master) return;
     const on = allMode();
-    nv.insertAdjacentHTML('afterbegin', `<button class="pe-all-nav${on ? ' on' : ''}" data-act="peAllSites" title="Locations"${on ? ' aria-current="page"' : ''}>${ic('building', 19)}<span class="lbl">Locations</span><span class="slbl">Locations</span></button>`);
+    nv.insertAdjacentHTML('afterbegin', `<button class="pe-all-nav${on ? ' on' : ''}" data-act="peAllSites" title="Locations"${on ? ' aria-current="page"' : ''}>${ic('pvloc', 19)}<span class="lbl">Locations</span><span class="slbl">Locations</span></button>`);
     if (!on) return;
     nv.querySelectorAll(':scope > button:not(.pe-all-nav)').forEach((b) => {
       const name = b.querySelector('.lbl')?.textContent || b.title || '';

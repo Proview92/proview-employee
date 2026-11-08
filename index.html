@@ -833,11 +833,11 @@ html .side .nav .nav-group .rail-ic{display:block!important}html .side .nav .nav
 @media (min-width:701px) and (max-width:900px){
  .app,.app.collapsed{grid-template-columns:72px 1fr!important}
  .app .side{padding:0!important;gap:0!important}
- .app .side .brand{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;padding:18px 0 14px!important;margin:0!important;height:auto!important;gap:0!important}
+ .app .side .brand{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;padding:18px 0 14px!important;margin:0!important;height:auto!important;gap:10px!important}
  .app .side .brand .wordmark{display:none!important}
  .app .side .brand .logo{margin:0!important;width:36px!important;height:26px!important}
  .app .side #sitePick,.app .side .client-pick,.app .side .venue,.app .side #sideFoot,.app .side .nav-sec{display:none!important}
- .app #nav{padding:6px 10px!important;display:block!important}
+ .app #nav{padding:6px 10px!important;display:flex!important;flex-direction:column!important;gap:0!important}
  .app #nav button{width:52px!important;min-width:0!important;max-width:52px!important;height:56px!important;margin:0!important;padding:0 2px!important;gap:5px!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;border-radius:9px!important;box-sizing:border-box!important}
  .app #nav button svg,.app #nav button .gs-ring{width:18px!important;height:18px!important;margin:0!important;flex:none}
  .app #nav button .lbl,.app #nav button .cnt{display:none!important}
@@ -885,6 +885,42 @@ body.pv-booting>:not(.pv-splash){visibility:hidden!important}
 html .pv-splash .logo.logo.logo.logo{width:72px!important;height:72px!important;opacity:.9;animation:pvsplash 1.2s ease-in-out infinite}
 @keyframes pvsplash{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){html .pv-splash .logo.logo.logo.logo{animation:none}}
+/* ===== Proview shell v4: exact Proview Signage values (SHELL_MATCH_SPEC.md, measured in headless Chrome) ===== */
+body{-webkit-font-smoothing:antialiased}
+.side{gap:0}
+.side .nav{display:flex;flex-direction:column;gap:0}
+.side .nav>*{flex-shrink:0}
+@media (min-width:901px){.side .nav .gs-ring.gs-ring{width:16px!important;height:16px!important;-webkit-mask:radial-gradient(circle,transparent 4.6px,#000 5.1px);mask:radial-gradient(circle,transparent 4.6px,#000 5.1px)}}
+.side .side-foot{gap:normal}
+@media (hover:none) and (pointer:coarse){.top .hdr-pick select{font-size:16px!important}}
+/* Locations page (master's All locations): page head, stats and table exactly as Proview Signage's Locations page */
+.pv-loc{max-width:1236px}   /* Signage's page area stops at 1280px (less its 22px side padding) */
+.pv-ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:0 0 22px;flex-wrap:wrap}
+.pv-ph h1{margin:0;font-size:21px;font-weight:650;letter-spacing:-.01em;line-height:1.45;color:var(--ink,#17171c)}
+.pv-ph p{margin:4px 0 0;font-size:15px;line-height:1.45;color:var(--mut,#55555f)}
+.pv-ph .btn{height:38px;min-height:0;padding:0 14px;font-size:14px;font-weight:600;line-height:normal;border-radius:10px;gap:7px;box-sizing:border-box}
+.pv-ph .btn svg{width:16px;height:16px}
+.pv-ph a.btn:not(.pri):not(.primary){color:var(--ink,#17171c);text-decoration:none}
+.pv-loc .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 16px}
+.pv-loc .stats .stat{padding:14px 16px;border-radius:12px;border:1px solid var(--line,#e4e2dc);background:var(--card,#fff);box-shadow:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05)}
+.pv-loc .stats .stat .k{font-size:12px;font-weight:400;line-height:1.45;color:var(--grey,#8b8b95);letter-spacing:normal}
+.pv-loc .stats .stat .v{font-size:26px;font-weight:700;line-height:1.45;letter-spacing:normal;margin-top:4px}
+.pv-loc>.card{border-radius:12px;border:1px solid var(--line,#e4e2dc);background:var(--card,#fff);box-shadow:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05);padding:0}
+.pv-loc table th{font-size:12px;font-weight:600;line-height:1.45;text-transform:uppercase;letter-spacing:.04em;color:var(--grey,#8b8b95);padding:12px 16px;background:none;border-bottom:1px solid var(--line,#e4e2dc)}
+.pv-loc table td{font-size:14px;line-height:1.45;padding:12px 16px;vertical-align:middle;border-bottom:1px solid var(--line,#e4e2dc)}
+.pv-loc table tr:last-child td{border-bottom:0}
+/* header title: one line with an ellipsis, as Proview Signage (keeps its width from 701px up; the picker shrinks) */
+html :is(#top,.top):is(#top,.top)>h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:auto}
+@media (min-width:701px){html :is(#top,.top):is(#top,.top)>h2{flex-shrink:0}}
+/* collapsed menu (desktop): same geometry as Proview Signage's collapsed menu */
+@media (min-width:901px){
+html .app.collapsed :is(.side,#pv-x){padding:18px 10px!important}
+html .app.collapsed .side :is(.brand,#pv-x){justify-content:center!important;padding:4px 0 18px!important;gap:10px!important;margin:0!important}
+html .app.collapsed .side :is(.nav,#pv-x){padding:6px 10px!important}
+html .app.collapsed .side :is(.nav,#pv-x)>a,html .app.collapsed .side :is(.nav,#pv-x)>button:not(.nav-group):not(.nav-more){width:32px!important;min-width:0!important;margin:0 auto!important;padding:0 12px!important;gap:10px!important;justify-content:center!important}
+html .app.collapsed .side :is(.side-foot,#pv-x){flex-direction:column!important;align-items:center!important;justify-content:normal!important;gap:4px!important;padding:0 10px 14px!important}
+html .app.collapsed .side :is(.side-foot,#pv-x)>*{width:30px!important;height:26px!important;padding:6px 8px!important;margin:0!important;justify-content:center!important;box-sizing:border-box!important}
+}
 </style>
 <script src="config.js"></script>
 </head>
@@ -948,6 +984,7 @@ const toCSV=rows=>rows.map(r=>r.map(csvCell).join(',')).join('\n');
 const COLORS=['#4a6cd0','#6d5fc4','#12a150','#d48a00','#d92d20','#2f84d4','#c0399a','#0f9d9a','#8b8b95','#5a5fbb'];
 
 const ICON={
+ pvloc:'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>',
  rocket:'<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 11a12 12 0 0 1 11-8 12 12 0 0 1-8 11l-3 1-1-1z"/><circle cx="15" cy="9" r="1.5"/>',
  dash:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
