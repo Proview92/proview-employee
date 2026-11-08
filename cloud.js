@@ -346,13 +346,13 @@
     lsSet(cacheKey(), { since: O.since, org: O.org, orgName: O.orgName, member: O.member, role: O.role, rows: [...O.rows.values()] });
   }
   /* ---------------- this device's cached business data ----------------
-     Keys: pe-cache:<user>:<org>, pe-queue:<user>:<org>, pe-last-org:<user> (an org id), pvhub.<org>.<member>.<k>.
+     Keys: pe-cache:<user>:<org>, pe-queue:<user>:<org>, pe-site:<user>:<org> (chosen site), pe-last-org:<user> (an org id), pvhub.<org>.<member>.<k>.
      keep = Set of org ids the signed-in person can open now (null: only drop other people's data). */
   function lsKeys() { const out = []; try { for (let i = 0; i < localStorage.length; i++) out.push(localStorage.key(i)); } catch (e) {} return out; }
   function purgeCache(keep) {
     const me = O.user && O.user.id;
     lsKeys().forEach((k) => {
-      let m = /^pe-(?:cache|queue):([^:]+):(.*)$/.exec(k);
+      let m = /^pe-(?:cache|queue|site):([^:]+):(.*)$/.exec(k);
       if (m) { if (m[1] !== me || (keep && !keep.has(m[2]))) lsDel(k); return; }
       m = /^pe-last-org:(.+)$/.exec(k);
       if (m) { if (m[1] !== me || (keep && !keep.has(lsGet(k)))) lsDel(k); return; }
@@ -361,7 +361,7 @@
     });
   }
   // sign-out: no business data stays on the device
-  function clearCache() { lsKeys().forEach((k) => { if (/^(pe-cache:|pe-queue:|pe-last-org:|pvhub\.)/.test(k)) lsDel(k); }); }
+  function clearCache() { lsKeys().forEach((k) => { if (/^(pe-cache:|pe-queue:|pe-site:|pe-last-org:|pvhub\.)/.test(k)) lsDel(k); }); }
   O.purgeCache = purgeCache;
 
   // Master "All sites" home: signed in, no business open, nothing synced.

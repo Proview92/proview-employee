@@ -196,36 +196,54 @@
     const groups = pickGroups();
     const staff = typeof isStaff === 'function' && isStaff() && !O.asMaster;
     const cur = groups.find((g) => g.id === O.org);
-    const one = (t) => `<div class="hdr-pick"><div class="hdr-one" title="${esc(t)}">${esc(t)}</div></div>`;
-    // one business, and one site (or staff, who have no business-wide view): the name in the same box
+    const box = (t) => `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Choose site" title="${esc(t)}" disabled><option>${esc(t)}</option></select></div>`;
+    // one business with one site (or staff, who have no business-wide view): its name, in the same box, disabled
     if (!O.master && groups.length <= 1) {
       if (!cur) return '';
-      if (staff || cur.sites.length <= 1) return one(cur.sites.length === 1 ? cur.name + ARROW + cur.sites[0].name : cur.name);
+      if (staff || cur.sites.length <= 1) return box(cur.sites.length === 1 ? cur.sites[0].name : cur.name);
     }
     const all = O.master && (U.view === 'allbiz' || !O.org);
     const here = cur && U.fLoc && cur.sites.some((x) => x.id === U.fLoc) ? U.fLoc : '';
     const sel = (v) => (!all && v === `${O.org}|${here}` ? ' selected' : '');
+    const opt = (v, t) => `<option value="${esc(v)}"${sel(v)}>${esc(t)}</option>`;
     const nSites = groups.reduce((t, g) => t + (g.sites ? g.sites.length : 0), 0);
-    const opts = groups.map((g) => {
-      const list = g.sites || [];
-      const whole = O.master ? 'Whole business' : 'All my sites';
-      let o;
-      if (staff && g.id === O.org) o = `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name)}</option>`;
-      else if (!g.sites) o = `<option value="${esc(g.id)}|">${esc(g.name)}</option>`;
-      else if (!list.length) o = `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name)}</option>`;
-      else o = (list.length > 1 || g.id === O.org ? `<option value="${esc(g.id)}|"${sel(g.id + '|')}>${esc(g.name + ARROW + whole)}</option>` : '')
-        + list.map((x) => `<option value="${esc(g.id)}|${esc(x.id)}"${sel(g.id + '|' + x.id)}>${esc(g.name + ARROW + x.name)}</option>`).join('');
-      return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
-    }).join('');
+    let opts;
+    if (!O.master && groups.length === 1) {
+      // one business: "All my sites (N)" + each of their sites, no business prefix
+      opts = opt(cur.id + '|', `All my sites (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
+    } else {
+      // master (and someone in several businesses): one group per business, "Business ▸ All sites" first
+      const whole = O.master ? 'All sites' : 'All my sites';
+      opts = groups.map((g) => {
+        const o = staff && g.id === O.org ? opt(g.id + '|', g.name)
+          : opt(g.id + '|', g.name + ARROW + whole) + (g.sites || []).map((x) => opt(g.id + '|' + x.id, g.name + ARROW + x.name)).join('');
+        return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
+      }).join('');
+    }
     const allOpt = O.master ? `<option value="__all"${all ? ' selected' : ''}>All sites (${nSites})</option>` : '';
-    const tip = O.master ? (all ? 'Master view: all sites' : 'Viewing one business as its owner sees it') : 'Switch site';
-    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Site" title="${tip}" data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
+    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Site</label><select id="hdr-site" aria-label="Choose site" data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
+  }
+  // the chosen site is remembered per person, per business, on this device (cleared at sign-out, see cloud.js)
+  const siteKey = (org) => (O.user && org ? `pe-site:${O.user.id}:${org}` : '');
+  function saveSite() { const k = siteKey(O.org); if (!k) return; try { localStorage.setItem(k, JSON.stringify(U.fLoc || '')); } catch (e) {} }
+  function savedSite(org) { try { return JSON.parse(localStorage.getItem(siteKey(org)) || '""') || ''; } catch (e) { return ''; } }
+  let siteOrg = null, siteChosen = false;
+  function syncSite() {
+    if (!O.ready || !O.org || O.home) { siteOrg = null; return; }
+    if (O.org !== siteOrg) {
+      // another business opened: use the site just chosen, else the one remembered (if it still exists), else all
+      siteOrg = O.org;
+      if (!siteChosen) U.fLoc = savedSite(O.org);
+      siteChosen = false;
+      if (U.fLoc && !mySites().some((x) => x.id === U.fLoc)) U.fLoc = '';
+    }
+    saveSite();
   }
   A.pePickSite = (el) => {
     const v = el.value;
     if (v === '__all') return A.pePickOrg({ value: '__all' });
     const i = v.indexOf('|'), id = v.slice(0, i), loc = v.slice(i + 1);
-    U.fLoc = loc;
+    U.fLoc = loc; siteChosen = id !== O.org;
     if (id === O.org) { if (U.view === 'allbiz') U.view = 'dashboard'; render(); return; }
     A.pePickOrg({ value: id });
   };
@@ -344,7 +362,7 @@
   A.peAllRefresh = () => { loadAll(true); render(); };
   A.peAllOpen = (el) => {
     const id = el.dataset.id, loc = el.dataset.loc || '';
-    U.fLoc = loc; U.view = 'dashboard';
+    U.fLoc = loc; U.view = 'dashboard'; siteChosen = id !== O.org;
     if (id === O.org) { render(); return; }
     A.pePickOrg({ value: id });
   };
@@ -363,6 +381,7 @@
     const home = !!(O.ready && O.home);
     if (home) U.view = 'allbiz';
     document.body.classList.toggle('pe-home', home);
+    try { syncSite(); } catch (e) {}
     const r = _renderNow.apply(this, arguments);
     // signed out: only the sign-in page is in the page, no app shell or business data behind it
     if (document.body.classList.contains('signed-out')) ['#content', '#top', '#nav', '#venueCard', '#sideFoot'].forEach((q) => { const el = document.querySelector(q); if (el) el.innerHTML = ''; });
@@ -416,18 +435,27 @@
   const css3 = document.createElement('style');
   css3.textContent = `.slbl{display:none}
 @media (min-width:701px) and (max-width:900px){.side .nav button{flex-direction:column;gap:4px!important;padding:8px 2px 7px!important;justify-content:center}.side .slbl{display:block;font-size:10.5px;line-height:1.15;font-weight:500;text-align:center;white-space:nowrap;letter-spacing:-.1px}.side .nav button .cnt{display:none}.side-foot button{flex-direction:column;gap:3px;padding:7px 2px!important}.side-foot .slbl{font-size:10px}.side-foot button[data-act=collapse]{display:none!important}}
-/* site drop-down in the top header, after the title (same as Proview WiFi's .hdr-pick) */
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-#top .hdr-pick{margin:0 0 0 6px;flex:1 1 auto;min-width:0;max-width:640px;display:flex}
-#top .hdr-pick select,#top .hdr-pick .hdr-one{width:100%;min-width:170px;height:38px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background-color:var(--card);color:var(--ink);font:600 14px Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;padding:0 30px 0 12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#top .hdr-pick .hdr-one{display:block;line-height:36px;padding-right:12px;cursor:default;width:auto;max-width:100%}
-#top .hdr-pick select:focus-visible{outline:2px solid #5a8dee;outline-offset:2px}
-#top .hdr-pick option,#top .hdr-pick optgroup{background:var(--card);color:var(--ink)}
-@media (min-width:701px){#top>h2{flex:0 0 auto;white-space:nowrap}}
-/* phone: the status/search/chat/mail/bell tray leaves no room on the title row, so the drop-down
-   takes a full-width second row of the header, right under the title */
-@media (max-width:700px){#top.top{flex-wrap:wrap!important;row-gap:8px}#top .hdr-pick{order:99;flex:1 1 100%;margin:0;max-width:none}#top .hdr-pick select,#top .hdr-pick .hdr-one{min-width:0;height:36px;font-size:13px}#top .hdr-pick .hdr-one{line-height:34px;width:100%}}
-@media (hover:none) and (pointer:coarse){#top .hdr-pick select{font-size:16px}}`;
+/* site picker: in the top header right after the page title, on every screen size (same as Proview WiFi;
+   Bookings and Label use the same .hdr-pick markup and rules) */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.top .hdr-pick { margin: 0 0 0 6px; flex: 0 1 auto; min-width: 0; }
+.top .hdr-pick select { display: block; width: auto; height: 38px; max-width: 320px; min-width: 170px; border-radius: 10px; border: 1px solid var(--line); background-color: #fff; color: var(--ink); font: 600 14px var(--font); padding: 0 30px 0 12px; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+.top .hdr-pick select:focus { outline: none; border-color: var(--line); }
+.top .hdr-pick select:focus-visible { outline: 2px solid #5a8dee; outline-offset: 2px; }
+.top .hdr-pick select:disabled { opacity: 1; cursor: default; color: var(--ink); appearance: none; -webkit-appearance: none; padding-right: 12px; }
+/* phones: the tray leaves no room on the title row, so the picker gets the header's second row, full width */
+@media (max-width: 700px) {
+  .top { flex-wrap: wrap; row-gap: 6px; }
+  .top .hdr-pick { order: 1; flex: 1 0 100%; margin: 0; }
+  .top .hdr-pick select { width: 100%; min-width: 0; max-width: none; height: 36px; font-size: 13px; }
+}
+/* (end of Signage's block) Employee only: its font variable, and its phone header's nowrap title row */
+:root { --font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif; }
+.top > h2 { flex: 0 0 auto; white-space: nowrap; }
+body.dark .top .hdr-pick select { background-color: var(--card); }
+/* Employee makes every phone-width box 16px; keep Signage's 13px except on touch screens (where both apps use 16px) */
+@media (max-width: 700px) and (pointer: fine), (max-width: 700px) and (hover: hover) { .top .hdr-pick select { font-size: 13px !important; } }
+@media (max-width: 700px) { #top.top { flex-wrap: wrap !important; } #top.top > h2 { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; } }`;
   document.head.appendChild(css3);
 
   const css2 = document.createElement('style');
