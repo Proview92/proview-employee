@@ -3,11 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#171c29">
-<script>/* Proview Navy theme: theme and menu position before first paint (shared keys pv.theme, pv.menu) */
-try{var pvT=localStorage.getItem('pv.theme')==='light'?'light':'dark';document.documentElement.setAttribute('data-theme',pvT);if(localStorage.getItem('pv.menu')==='bottom')document.documentElement.classList.add('menu-bottom');document.querySelector('meta[name=theme-color]').setAttribute('content',pvT==='light'?'#f2f4f9':'#171c29')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>Proview Employee</title>
 <link rel="icon" type="image/png" href="icon-32.png?v=2">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
@@ -928,7 +923,6 @@ html .app.collapsed .side :is(.side-foot,#pv-x)>*{width:30px!important;height:26
 }
 </style>
 <script src="config.js"></script>
-<link rel="stylesheet" id="pv-navy-css" href="navy.css?v=1">
 </head>
 <body class="pv-booting">
 <div class="pv-splash" role="status" aria-label="Loading Proview Employee"><div class="logo"></div></div>
@@ -940,7 +934,7 @@ setTimeout(function(){window.pvSplashDone()},8000);
 </script>
 <div class="app" id="app">
   <aside class="side">
-    <div class="brand"><div class="logo" role="img" aria-label="Proview logo"></div><span class="wordmark">Proview <i>Employee</i></span><button class="collapse-btn" data-act="collapse" title="Collapse menu"></button></div>
+    <div class="brand"><div class="logo" role="img" aria-label="Proview logo"></div><span class="wordmark">PROVIEW<span>EMPLOYEE</span></span><button class="collapse-btn" data-act="collapse" title="Collapse menu"></button></div>
     <nav class="nav" id="nav"></nav>
     <div class="venue" id="venueCard" data-act="go" data-v="organization" style="cursor:pointer"></div>
     <div class="side-foot" id="sideFoot"></div>
@@ -1593,7 +1587,7 @@ function renderKiosk(){const el=$('#kiosk');if(!K){el.innerHTML='';return}const 
   ${st==='out'?`<div style="color:#8b8b95;margin-top:6px">What are you working on?</div><div class="kgrid" style="max-width:640px">${activeActs().map(a=>`<button data-act="kIn" data-a="${a.id}" style="border-color:${a.color}"><span class="swatch" style="background:${a.color};width:18px;height:18px"></span>${esc(a.name)}</button>`).join('')}</div>`:`<div class="row" style="gap:12px">${st==='break'?`<button class="btn" style="padding:14px 24px;font-size:16px" data-act="kBreak">${ic('play',16)} End break</button>`:`<button class="btn" style="padding:14px 24px;font-size:16px" data-act="kBreak">${ic('coffee',16)} Start break</button>`}<button class="btn pri" style="padding:14px 24px;font-size:16px;background:var(--bad)" data-act="kOut">${ic('stop',14)} Clock out</button></div>`}
   <button class="btn ghost" style="color:#c9c9d1" data-act="kBack">Not you? Go back</button>`}
  else if(K.step==='done')body=`<div style="width:90px;height:90px;border-radius:50%;background:var(--ok);display:grid;place-items:center">${ic('check',48)}</div><b style="font-size:24px">${esc(K.msg)}</b>`;
- el.innerHTML=`<div class="kiosk"><div style="position:absolute;top:18px;left:22px" class="wordmark">Proview <span>Kiosk</span></div><button class="btn" style="position:absolute;top:14px;right:18px;background:#23232a;border-color:#33333c;color:#ddd" data-act="kExit">${ic('x',16)} Exit kiosk</button><div class="kclock" id="kclock">${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><div style="color:#8b8b95;margin-top:-14px">${now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>${body}</div>`}
+ el.innerHTML=`<div class="kiosk"><div style="position:absolute;top:18px;left:22px" class="wordmark">PROVIEW <span>KIOSK</span></div><button class="btn" style="position:absolute;top:14px;right:18px;background:#23232a;border-color:#33333c;color:#ddd" data-act="kExit">${ic('x',16)} Exit kiosk</button><div class="kclock" id="kclock">${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div><div style="color:#8b8b95;margin-top:-14px">${now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>${body}</div>`}
 A.kExit=()=>{camClose(null);K=null;renderKiosk();render()};
 A.kPick=el=>{K={step:'pin',mid:el.dataset.id,pin:''};renderKiosk()};
 A.kBack=()=>{camClose(null);K={step:'pick',mid:null,pin:''};renderKiosk()};
@@ -2457,7 +2451,7 @@ const _dcoS=doClockOut;doClockOut=function(mid){const e=openEntry(mid);if(e&&e.b
 let LG={id:'',show:false,err:'',keep:true};
 function renderLogin(){const el=$('#login');const now=new Date();const t=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const d=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
  el.innerHTML=`<div class="auth2"><div class="auth2-art" aria-hidden="true">
-  <div class="auth2-brand"><span class="logo auth2-mark"></span><span class="wordmark2"><b>Proview</b> <span>Employee</span></span></div>
+  <div class="auth2-brand"><span class="logo auth2-mark"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
   <h2>Every clock-in, every break — in one place.</h2>
   <div class="ph"><div class="ph-scr"><div class="ph-notch"></div><div class="ph-d">${esc(d)}</div><div class="ph-t">${t}</div><div class="ph-pill">Working</div>
    <div class="ph-b ph-brk">Start break</div><div class="ph-b ph-out">Clock out</div>
@@ -2466,7 +2460,7 @@ function renderLogin(){const el=$('#login');const now=new Date();const t=now.toL
   <div class="ph-sheet"><span>This week</span><b>37h 30m</b><div class="ph-bars"><i style="height:70%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:90%"></i><i style="height:75%"></i><i style="height:25%"></i><i style="height:0"></i></div></div>
   <div class="auth2-sub">Clock in and out, take breaks, and see your tasks, timesheets, payslips and P45s.</div></div>
  <div class="auth2-form"><div>${LG.mode==='signup'?signupForm():`<form data-act-submit="doLogin" autocomplete="on">
-  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>Proview</b> <span>Employee</span></span></div>
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
   <h1>Sign in</h1><p class="auth2-mut">Manage your shifts, timesheets and tasks.</p>
   <div>${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}</div>
   <label class="field2">Email or phone<input id="lgId" name="username" autocomplete="username" placeholder="you@company.com" value="${esc(LG.id)}"></label>
@@ -2477,7 +2471,7 @@ function renderLogin(){const el=$('#login');const now=new Date();const t=now.toL
 /* Create an account: starts a new company in this browser with you as the owner */
 function signupForm(){const F=LG.su||{};const pw=(id,ac,ph)=>`<div class="pw2"><input id="${id}" type="${LG.show?'text':'password'}" autocomplete="${ac}" placeholder="${ph}"><button type="button" class="pw2-eye" data-act="lgShow" aria-label="${LG.show?'Hide':'Show'} password" title="${LG.show?'Hide':'Show'} password">${ic('eye',18)}</button></div>`;
  return`<form data-act-submit="doSignup" autocomplete="on" novalidate>
-  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>Proview</b> <span>Employee</span></span></div>
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
   <h1>Create your account</h1><p class="auth2-mut">Set up your company, then add your team so they can clock in.</p>
   <div>${LG.err?`<div class="lg-err" role="alert">${esc(LG.err)}</div>`:''}</div>
   <label class="field2">Your name<input id="suName" autocomplete="name" placeholder="Full name" value="${esc(F.name||'')}"></label>
@@ -2704,6 +2698,5 @@ A.uaRemoveLogin=el=>{const m=mem(el.dataset.id);const O=window.PE_ONLINE;if(!m||
 A.uaArchive=el=>{const m=mem(el.dataset.id);if(!m)return;ask(`Remove ${esc(m.name)} from the team? They are archived (their records are kept) and can no longer sign in.`,()=>{m.archived=true;save();closeDrawer();render();toast(`${m.name} removed from the team`)},'Remove')};
 try{render()}catch(e){}
 </script>
-<script src="navy.js?v=1"></script>
 </body>
 </html>

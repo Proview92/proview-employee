@@ -514,7 +514,7 @@
   function setupForm() {
     const st = LG.st || {};
     return `<form data-act-submit="peTrialGo" autocomplete="on" novalidate class="pe-setup">
-  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>Proview</b> <span>Employee</span></span></div>
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
   <h1>Set up your business</h1><p class="auth2-mut">Start your free 3-day trial. You’ll be the owner, and can add your team straight away.</p>
   <div>${LG.err ? `<div class="lg-err" role="alert">${esc(LG.err)}</div>` : ''}</div>
   <label class="field2">Business name<input id="stBiz" autocomplete="organization" placeholder="Your business" value="${esc(st.biz || '')}"></label>
