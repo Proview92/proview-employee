@@ -273,7 +273,7 @@
   /* ---------------- "All sites" (master admins): every business and its sites ----------------
      The master's landing page (no business open, O.home), and also reachable from the picker. */
   TITLES.allbiz = 'Locations';
-  const ALLB = { list: null, sites: null, busy: false, at: 0, err: '', siteErr: false };
+  const ALLB = { list: null, sites: null, inNow: null, busy: false, at: 0, err: '', siteErr: false };
   U.allQ = U.allQ || '';
   async function loadAll(force) {
     if (!O.master || ALLB.busy || (!force && ALLB.at && Date.now() - ALLB.at < 60e3)) return;
@@ -297,18 +297,29 @@
       all.forEach((r) => { if (r.data && r.data.archived) return; if (!by.has(r.org_id)) by.set(r.org_id, []); by.get(r.org_id).push({ id: r.id, name: (r.data && r.data.name) || 'Location', address: (r.data && r.data.address) || '' }); });
       ALLB.sites = by; ALLB.siteErr = false;
     } catch (e) { ALLB.sites = ALLB.sites || new Map(); ALLB.siteErr = true; }
+    // who is clocked in now: open time entries (no clock-out yet), as the app's own in/out status
+    try {
+      const { data, error } = await O.sb.from('pe_rows').select('org_id,member_id,data').eq('coll', 'entries').eq('deleted', false).is('data->>out', null).limit(5000);
+      if (error) throw error;
+      const by = new Map();
+      (data || []).forEach((r) => { const d = r.data || {}; if (d.out != null) return; const mid = d.member || r.member_id; if (!mid) return; if (!by.has(r.org_id)) by.set(r.org_id, new Map()); by.get(r.org_id).set(mid, d.location || ''); });
+      ALLB.inNow = by;
+    } catch (e) { ALLB.inNow = null; }
     ALLB.at = Date.now(); ALLB.busy = false;
     if (O.ready && U.view === 'allbiz') render();
     else if (O.ready) { renderNav(); renderTop(); }
   }
   VIEWS.allbiz = function () {
     if (!O.master) return VIEWS.dashboard();
-    const L = ALLB.list, SI = ALLB.sites || new Map();
+    // Proview Signage's Locations page (business cards and clickable summary boxes; LOCATIONS_PAGE_STANDARD)
+    const L = ALLB.list, SI = ALLB.sites || new Map(), IN = ALLB.inNow;
     const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
-    const n = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
-    const stat = (k, v) => `<div class="card stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
-    const ago = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-    const q = String(U.allQ || '').trim().toLowerCase();
+    const sitesOf = (b) => (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name)));
+    const inOf = (b) => (IN ? staffOf(b).filter((m) => IN.get(b.id)?.has(m.member_id)) : null);
+    const lic = (m) => ({ type: m.license_type, expires: m.expires_at });
+    const NEEDS = ['none', 'expiring', 'grace', 'expired'];
+    const fmtD = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const nn = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
     // free 3-day trial: the owner's 'trial3' licence, and no paid licence in the business
     // (trial_ends_at / paid come from pe_master_overview; older servers: worked out from the staff list)
     const trialOf = (b) => {
@@ -323,59 +334,89 @@
       const at = new Date(ends).getTime();
       return { at, over: at <= Date.now() };
     };
-    const trialChip = (b) => {
-      const t = trialOf(b); if (!t) return '';
-      const when = new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      return t.over ? `<span class="chip red pe-trial" title="Trial ended ${esc(when)}">Trial – expired</span>`
-        : `<span class="chip amber pe-trial" title="Free 3-day trial">Trial – ends ${esc(when)}</span>`;
+    // status pill: grey nothing set up yet · red expired / suspended · amber trial, grace or ending soon · green all good
+    const pill = (b) => {
+      const st = staffOf(b), t = trialOf(b);
+      if (b.suspended) return '<span class="ov-pill bad">Suspended</span>';
+      if (t) return t.over ? '<span class="ov-pill bad">Trial – expired</span>' : `<span class="ov-pill warn">Trial – ends ${esc(fmtD(t.at))}</span>`;
+      const bad = st.filter((m) => ['none', 'expired'].includes(licState(lic(m)).state)).length;
+      if (bad) return `<span class="ov-pill bad">${bad} licence${bad === 1 ? ' needs' : 's need'} attention</span>`;
+      const warn = st.filter((m) => ['grace', 'expiring'].includes(licState(lic(m)).state)).length;
+      if (warn) return `<span class="ov-pill warn">${warn} licence${warn === 1 ? '' : 's'} ending soon</span>`;
+      if (!st.length) return '<span class="ov-pill">No staff yet</span>';
+      if (!sitesOf(b).length) return '<span class="ov-pill">No locations yet</span>';
+      return '<span class="ov-pill ok">All good</span>';
     };
-    const lic = (b) => {
-      const tc = trialChip(b);
-      if (tc) return tc;
-      const st = staffOf(b), ok = st.filter((m) => licOk({ type: m.license_type, expires: m.expires_at }));
-      if (!st.length) return '<span class="mut">—</span>';
-      const tone = ok.length === st.length ? 'green' : ok.length ? 'amber' : 'red';
-      const ends = ok.map((m) => (m.license_type === 'lifetime' || !m.expires_at ? Infinity : new Date(m.expires_at).getTime())).filter((t) => t !== Infinity);
-      const soon = ends.length ? Math.min(...ends) : null;
-      return `<span class="chip ${tone}">${ok.length} of ${st.length} licensed</span>${soon ? `<div class="tiny mut">Next ends ${esc(fmt(soon))}</div>` : ''}`;
+    // footer licence text, as Signage: "Licences: lifetime", "2 licences", "Trial ends 12 Nov", "Expired"
+    const licText = (b) => {
+      const st = staffOf(b), t = trialOf(b);
+      if (t) return t.over ? 'Trial expired' : `Trial ends ${fmtD(t.at)}`;
+      if (!st.length) return 'Add staff to get started';
+      if (st.every((m) => licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
+      if (st.every((m) => licState(lic(m)).state === 'expired')) return 'Expired';
+      const ok = st.filter((m) => licOk(lic(m))).length;
+      return ok === st.length ? `${st.length} licence${st.length === 1 ? '' : 's'}` : `${ok} of ${st.length} licensed`;
     };
-    const openBtn = (b, site) => {
-      const here = b.id === O.org && !site;
-      return `<button class="btn sm ${here ? '' : 'pri'}" data-act="peAllOpen" data-id="${esc(b.id)}"${site ? ` data-loc="${esc(site.id)}"` : ''}>${here ? 'Back to this business' : 'Open'}</button>`;
-    };
-    const rows = [];
-    (L || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).forEach((b) => {
-      const sites = (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name)));
-      const bizHit = !q || [b.name, b.contact_email].some((x) => x && String(x).toLowerCase().includes(q));
-      const shown = bizHit ? sites : sites.filter((x) => [x.name, x.address].some((y) => y && String(y).toLowerCase().includes(q)));
-      if (!bizHit && !shown.length) return;
-      const bizCell = (span) => `<td class="c-biz"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top"><b>${esc(b.name)}</b>${b.contact_email ? `<div class="small mut">${esc(b.contact_email)}</div>` : ''}${b.suspended ? ' <span class="chip red">Suspended</span>' : ''}<div class="tiny mut">${staffOf(b).length} staff · last active ${esc(ago(b.last_active))}</div></td>`;
-      const licCell = (span) => `<td class="c-lic"${span > 1 ? ` rowspan="${span}"` : ''} style="vertical-align:top">${lic(b)}</td>`;
-      if (!shown.length) {
-        rows.push(`<tr class="pe-first">${bizCell(1)}<td class="c-site mut">${ALLB.siteErr ? 'Locations couldn’t load' : 'No locations yet'}</td>${licCell(1)}<td class="c-open" style="text-align:right">${openBtn(b)}</td></tr>`);
-        return;
-      }
-      shown.forEach((x, i) => rows.push(`<tr${i ? '' : ' class="pe-first"'}>${i ? '' : bizCell(shown.length)}<td class="c-site"><b>${esc(x.name)}</b>${x.address ? `<div class="small mut">${esc(x.address)}</div>` : ''}</td>${i ? '' : licCell(shown.length)}<td class="c-open" style="text-align:right">${openBtn(b, x)}</td></tr>`));
+    const staffLine = (b) => { const st = staffOf(b).length, i = inOf(b); return !st ? 'No staff yet' : `${st} staff${i ? ` · ${i.length} clocked in` : ''}`; };
+    const chev = '<span class="ov-chev" aria-hidden="true">›</span>';
+    const cards = (L || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map((b) => {
+      const sites = sitesOf(b), single = sites.length === 1;
+      const sub = single ? [sites[0].name !== b.name && sites[0].name, staffLine(b)].filter(Boolean).join(' · ')
+        : `${sites.length ? `${sites.length} locations` : ALLB.siteErr ? 'Locations couldn’t load' : 'No locations yet'} · ${staffLine(b)}`;
+      const rows = single ? '' : sites.map((x) => {
+        const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null;
+        return `<button type="button" class="ov-loc" data-act="peAllOpen" data-id="${esc(b.id)}" data-loc="${esc(x.id)}" title="Open on this location"><span class="ov-dot${n ? ' ok' : ''}"></span><span class="grow">${esc(x.name)}</span><span class="muted small">${n == null ? '' : `${n} clocked in`}</span>${chev}</button>`;
+      }).join('');
+      const q = [b.name, b.contact_email, ...sites.map((x) => x.name), ...sites.map((x) => x.address)].filter(Boolean).join(' ').toLowerCase();
+      return { q, html: `<article class="card ov-biz"><div class="ov-bh"><div class="grow"><h3>${esc(b.name)}</h3><div class="muted small">${esc(sub)}</div></div>${pill(b)}</div>${rows}<div class="ov-bf"><span class="muted small">${esc(licText(b))}</span><button class="btn sm primary" data-act="peAllOpen" data-id="${esc(b.id)}"${single ? ` data-loc="${esc(sites[0].id)}"` : ''}>Open business</button></div></article>` };
     });
     const nSites = L ? L.reduce((t, b) => t + (SI.get(b.id) || []).length, 0) : '…';
-    const many = L && (L.length + (typeof nSites === 'number' ? nSites : 0)) > 6;
-    const addBtn = `<button class="btn sm pri" data-act="peAddBiz">${ic('plus', 14)} Add a business</button>`;
-    const portalBtn = `<a class="btn sm" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licence portal ↗</a>`;
-    const refreshBtn = `<button class="btn sm" data-act="peAllRefresh"${ALLB.busy ? ' disabled' : ''}>${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
-    const body = !L ? `<div class="pad mut">Loading…</div>`
-      : !L.length ? `<div class="pad pe-allempty" style="text-align:center;padding:40px 20px">${ic('building', 40)}<div style="font-weight:650;font-size:16px;margin-top:8px">No businesses yet</div><div class="small mut" style="margin:4px auto 14px;max-width:420px">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">${addBtn}${portalBtn}${refreshBtn}</div></div>`
-      : rows.length ? `<div class="pe-sites"><table class="t"><thead><tr><th>Business</th><th>Location</th><th>Licence / trial</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
-      : `<div class="pad mut">Nothing matches “${esc(U.allQ)}”.</div>`;
-    const headBtns = L && L.length ? (addBtn + portalBtn + refreshBtn).replace(/class="btn sm/g, 'class="btn') : '';
-    return `<div class="pv-loc"><div class="pv-ph"><div><h1>Locations</h1><p class="mut">Every business and its locations. Open one to see it as its owner does.</p></div><div class="row" style="gap:8px;flex-wrap:wrap">${headBtns}</div></div>
-      <div class="stats">${stat('Businesses', L ? L.length : '…')}${stat('Locations', nSites)}${stat('Staff', n((b) => staffOf(b).length))}${stat('Licensed staff', n((b) => staffOf(b).filter((m) => licOk({ type: m.license_type, expires: m.expires_at })).length))}</div>
+    const nStaff = nn((b) => staffOf(b).length), nIn = IN ? nn((b) => inOf(b).length) : '—';
+    const nLic = nn((b) => staffOf(b).filter((m) => licOk(lic(m))).length), nAttn = nn((b) => staffOf(b).filter((m) => NEEDS.includes(licState(lic(m)).state)).length);
+    const stat = (k, v, list, tone) => `<button type="button" class="card ov-stat${tone ? ' ' + tone : ''}" data-act="peAllList" data-list="${list}" title="Show the list"><div class="tiny">${k}</div><div class="ov-v">${v}</div></button>`;
+    const stats = `<div class="ov-stats">${stat('Businesses', L ? L.length : '…', 'biz')}${stat('Locations', nSites, 'loc')}${stat('Staff', nStaff, 'staff')}${stat('Clocked in now', nIn, 'in', nIn > 0 ? 'ok' : '')}${stat('Licensed staff', nLic, 'lic')}${stat('Licences need attention', nAttn, 'attn', nAttn > 0 ? 'bad' : '')}</div>`;
+    const addBtn = `<button class="btn primary" data-act="peAddBiz">${ic('plus', 16)} Add business</button>`;
+    const portalBtn = `<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licences ↗</a>`;
+    const refreshBtn = `<button class="btn" data-act="peAllRefresh" title="Refresh"${ALLB.busy ? ' disabled' : ''}>${ic('refresh', 16)} ${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
+    const q = String(U.allQ || '').trim().toLowerCase();
+    const shown = cards.filter((c) => !q || c.q.includes(q)).map((c) => c.html);
+    const body = !L ? '<p class="muted" style="grid-column:1/-1;margin:0">Loading…</p>'
+      : !L.length ? `<div class="card ov-empty-card"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 12px;gap:10px"><h3 style="margin:0;font-size:15px;font-weight:650">No businesses yet</h3><p class="muted" style="margin:0">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</p><div class="pv-acts" style="justify-content:center">${addBtn}<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a>${refreshBtn}</div></div></div>`
+      : shown.length ? shown.join('') : `<p class="muted" style="grid-column:1/-1;margin:0">No businesses or locations match “${esc(U.allQ)}”.</p>`;
+    return `<div class="pv-loc"><div class="pv-ph"><p class="muted">Every business on the platform with its locations. Open one to see it as its team does.</p><div class="pv-acts">${refreshBtn}${portalBtn}${addBtn}</div></div>
+      ${stats}
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      <div class="card pe-allsites">${many || q ? `<div style="padding:12px 14px"><div class="search">${ic('search', 15)}<input class="inp" placeholder="Search businesses and locations…" value="${esc(U.allQ || '')}" data-act-input="allQ" aria-label="Search businesses and locations"></div></div>` : ''}${body}</div></div>`;
+      ${L && (L.length > 3 || q) ? `<div class="ov-tools"><input class="ov-search" type="search" placeholder="Search businesses or locations" aria-label="Search businesses or locations" value="${esc(U.allQ || '')}" data-act-input="allQ"></div>` : ''}
+      <div class="ov-grid">${body}</div></div>`;
+  };
+  // the summary boxes: each opens the list behind its number (as Proview Signage)
+  A.peAllList = (el) => {
+    const k = el.dataset.list, L = ALLB.list || [], SI = ALLB.sites || new Map(), IN = ALLB.inNow;
+    const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
+    const lic = (m) => ({ type: m.license_type, expires: m.expires_at });
+    const NEEDS = ['none', 'expiring', 'grace', 'expired'];
+    const chev = '<span class="ov-chev" aria-hidden="true">›</span>';
+    const tone = (m) => { const s = licState(lic(m)).state; return s === 'none' || s === 'expired' ? 'bad' : s === 'grace' || s === 'expiring' ? 'warn' : 'ok'; };
+    const pillOf = (m) => { const s = licSummary(lic(m)); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.text)}</span>`; };
+    const biz = L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    const people = biz.flatMap((b) => staffOf(b).map((m) => ({ b, m })));
+    const locName = (b, id) => (SI.get(b.id) || []).find((x) => x.id === id)?.name || '';
+    const li = (b, loc, dotT, title, sub, right) => `<button type="button" class="ov-li" data-act="peAllOpen" data-id="${esc(b.id)}"${loc ? ` data-loc="${esc(loc)}"` : ''}><span class="ov-dot ${dotT}"></span><span class="grow"><b>${esc(title)}</b><span class="tiny" style="display:block">${esc(sub)}</span></span>${right}${chev}</button>`;
+    const person = ({ b, m }, right) => li(b, '', tone(m), m.name || m.email || 'Staff member', [b.name, m.role].filter(Boolean).join(' · '), right);
+    let title, items, empty;
+    if (k === 'biz') { title = 'Businesses'; empty = 'No businesses yet.'; items = biz.map((b) => li(b, '', staffOf(b).some((m) => tone(m) === 'bad') ? 'bad' : staffOf(b).some((m) => tone(m) === 'warn') ? 'warn' : staffOf(b).length ? 'ok' : '', b.name, `${(SI.get(b.id) || []).length} location(s) · ${staffOf(b).length} staff`, '')); }
+    else if (k === 'loc') { title = 'Locations'; empty = 'No locations yet.'; items = biz.flatMap((b) => (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name))).map((x) => { const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null; return li(b, x.id, n ? 'ok' : '', x.name, b.name, n == null ? '' : `<span class="muted small">${n} clocked in</span>`); })); }
+    else if (k === 'staff') { title = 'Staff'; empty = 'No staff yet.'; items = people.map((p) => person(p, pillOf(p.m))); }
+    else if (k === 'in') { title = 'Clocked in now'; empty = IN ? 'Nobody is clocked in right now.' : 'Couldn’t load who is clocked in. Press Refresh.'; items = IN ? people.filter(({ b, m }) => IN.get(b.id)?.has(m.member_id)).map(({ b, m }) => li(b, IN.get(b.id).get(m.member_id) || '', 'ok', m.name || m.email || 'Staff member', [b.name, locName(b, IN.get(b.id).get(m.member_id))].filter((x, i, a) => x && a.indexOf(x) === i).join(' · '), '<span class="muted small">Clocked in</span>')) : []; }
+    else if (k === 'lic') { title = 'Licensed staff'; empty = 'Nobody has a working licence.'; items = people.filter(({ m }) => licOk(lic(m))).map((p) => person(p, pillOf(p.m))); }
+    else { title = 'Licences needing attention'; empty = 'Every licence is fine.'; items = people.filter(({ m }) => NEEDS.includes(licState(lic(m)).state)).map((p) => person(p, pillOf(p.m))); }
+    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">${esc(title)}</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>${items.length ? `<div class="ov-list" style="margin-top:8px">${items.join('')}</div>` : `<p class="small mut" style="margin:10px 0 0">${empty}</p>`}</div>`, 640);
   };
   AFTER.allbiz = function () { loadAll(false); };
   A.peAllRefresh = () => { loadAll(true); render(); };
   A.peAllOpen = (el) => {
     const id = el.dataset.id, loc = el.dataset.loc || '';
+    if ($('#modal')?.classList.contains('show')) A.closeModal();
     U.fLoc = loc; U.view = 'dashboard'; siteChosen = id !== O.org;
     if (id === O.org) { render(); return; }
     A.pePickOrg({ value: id });
@@ -518,9 +559,6 @@ body.dark .top .hdr-pick select { background-color: var(--card); }
   css2.textContent = `.lic-banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #f3d38a;background:#fff8e6;color:#7a5200;margin-bottom:16px}.lic-banner>svg{flex:none;align-self:flex-start;margin-top:2px}.lic-banner .lic-txt{flex:1;min-width:200px}.lic-banner .lic-btn{flex:none;margin-left:auto;text-decoration:none}.lic-banner.ok{border-color:var(--line);background:var(--card);color:var(--ink)}@media (max-width:700px){.lic-banner .lic-btn{width:100%;justify-content:center;margin-left:0;min-height:40px}}.lic-banner.bad{border-color:#f3c7c3;background:#fdf0ef;color:#a02219}.lic-banner a{color:inherit;font-weight:700}`;
   document.head.appendChild(css2);
   const css4 = document.createElement('style');
-  css4.textContent = `body.pe-home #tabbar,body.pe-home .clockbox,body.pe-home .side-foot [data-act=kiosk],body.pe-home .top>span[style*="width:1px"]{display:none!important}body.pe-home #venueCard{pointer-events:none}
-.pe-allsites .search{max-width:420px}.pe-allsites td .btn{white-space:nowrap}
-@media (max-width:700px){.pe-sites table.t,.pe-sites tbody{display:block;min-width:0}.pe-sites thead{display:none}.pe-sites tr{display:flex;flex-wrap:wrap;align-items:center}.pe-sites tr.pe-first{border-top:1px solid var(--line)}.pe-sites td{display:block;border:0!important}
-.pe-sites td.c-biz{order:1;flex:1 1 100%;min-width:0;padding-bottom:2px}.pe-sites td.c-lic{order:2;flex:1 1 100%;padding-top:2px;padding-bottom:4px}.pe-sites td.c-lic .tiny{display:inline;margin-left:6px}.pe-sites td.c-site{order:3;flex:1 1 0;min-width:0;padding:6px 10px 6px 22px}.pe-sites td.c-open{order:4;flex:0 0 auto;padding:6px 10px}}`;
+  css4.textContent = `body.pe-home #tabbar,body.pe-home .clockbox,body.pe-home .side-foot [data-act=kiosk],body.pe-home .top>span[style*="width:1px"]{display:none!important}body.pe-home #venueCard{pointer-events:none}`;
   document.head.appendChild(css4);
 })();

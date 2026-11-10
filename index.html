@@ -893,22 +893,75 @@ body{-webkit-font-smoothing:antialiased}
 @media (min-width:901px){.side .nav .gs-ring.gs-ring{width:16px!important;height:16px!important;-webkit-mask:radial-gradient(circle,transparent 4.6px,#000 5.1px);mask:radial-gradient(circle,transparent 4.6px,#000 5.1px)}}
 .side .side-foot{gap:normal}
 @media (hover:none) and (pointer:coarse){.top .hdr-pick select{font-size:16px!important}}
-/* Locations page (master's All locations): page head, stats and table exactly as Proview Signage's Locations page */
-.pv-loc{max-width:1236px}   /* Signage's page area stops at 1280px (less its 22px side padding) */
-.pv-ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:0 0 22px;flex-wrap:wrap}
-.pv-ph h1{margin:0;font-size:21px;font-weight:650;letter-spacing:-.01em;line-height:1.45;color:var(--ink,#17171c)}
-.pv-ph p{margin:4px 0 0;font-size:15px;line-height:1.45;color:var(--mut,#55555f)}
-.pv-ph .btn{height:38px;min-height:0;padding:0 14px;font-size:14px;font-weight:600;line-height:normal;border-radius:10px;gap:7px;box-sizing:border-box}
-.pv-ph .btn svg{width:16px;height:16px}
-.pv-ph a.btn:not(.pri):not(.primary){color:var(--ink,#17171c);text-decoration:none}
-.pv-loc .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 16px}
-.pv-loc .stats .stat{padding:14px 16px;border-radius:12px;border:1px solid var(--line,#e4e2dc);background:var(--card,#fff);box-shadow:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05)}
-.pv-loc .stats .stat .k{font-size:12px;font-weight:400;line-height:1.45;color:var(--grey,#8b8b95);letter-spacing:normal}
-.pv-loc .stats .stat .v{font-size:26px;font-weight:700;line-height:1.45;letter-spacing:normal;margin-top:4px}
-.pv-loc>.card{border-radius:12px;border:1px solid var(--line,#e4e2dc);background:var(--card,#fff);box-shadow:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05);padding:0}
-.pv-loc table th{font-size:12px;font-weight:600;line-height:1.45;text-transform:uppercase;letter-spacing:.04em;color:var(--grey,#8b8b95);padding:12px 16px;background:none;border-bottom:1px solid var(--line,#e4e2dc)}
-.pv-loc table td{font-size:14px;line-height:1.45;padding:12px 16px;vertical-align:middle;border-bottom:1px solid var(--line,#e4e2dc)}
-.pv-loc table tr:last-child td{border-bottom:0}
+/* ===== Locations page = Proview Signage's (web/css/app.css at 76996e4/1906cd5: .page-head, .btn, .card, .badge, .ov-*), same values.
+   Colours come from --ov-* (set per app on body, so dark mode follows); the fallbacks are Signage's light values. ===== */
+.pv-loc{font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;color:var(--ov-ink,#17171c);-webkit-font-smoothing:antialiased;max-width:1236px}
+.pv-loc *,.ov-list *{box-sizing:border-box}
+.pv-loc .pv-ph{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 22px;padding:0;flex-wrap:wrap}
+.pv-loc .pv-ph>p{margin:0;font-size:15px;font-weight:400;line-height:1.45;letter-spacing:normal;color:var(--ov-ink2,#55555f)}
+.pv-loc .pv-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pv-loc .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;min-height:0;padding:0 14px;border-radius:10px;border:1px solid var(--ov-line,#e4e2dc);background:var(--ov-panel,#fff);color:var(--ov-ink,#17171c);font:600 14px "Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;line-height:normal;letter-spacing:normal;cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:none;box-sizing:border-box;width:auto;max-width:none}
+.pv-loc .btn:hover{border-color:#cfccc4;background:#fbfaf8;color:var(--ov-ink,#17171c)}
+.pv-loc .btn:disabled{opacity:.5;cursor:not-allowed}
+.pv-loc .btn svg{width:16px;height:16px;flex:none}
+.pv-loc .btn.primary,.pv-loc .btn.primary:hover{background:linear-gradient(135deg,#2f84d4 0%,#5a5fbb 100%);border-color:transparent;color:#fff}
+.pv-loc .btn.primary:hover{filter:brightness(.95)}
+.pv-loc .btn.sm{height:32px;padding:0 11px;font-size:13px;border-radius:8px}
+.pv-loc .card,.ov-list .card{background:var(--ov-panel,#fff);border:1px solid var(--ov-line,#e4e2dc);border-radius:12px;box-shadow:0 1px 2px rgba(20,20,30,.06),0 4px 16px rgba(20,20,30,.05)}
+.pv-loc .muted,.ov-list .muted{color:var(--ov-ink2,#55555f)}
+.pv-loc .small,.ov-list .small{font-size:13px}
+.pv-loc .tiny,.ov-list .tiny{font-size:12px;color:var(--ov-ink3,#8b8b95)}
+.pv-loc .grow,.ov-list .grow{flex:1;min-width:0}
+.pv-loc h3{margin:0;letter-spacing:-.015em;line-height:1.45;color:inherit}
+/* status pill (Signage .badge) */
+.ov-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;line-height:1.45;letter-spacing:normal;padding:3px 9px;border-radius:999px;background:#eeece6;color:var(--ov-ink2,#55555f);white-space:nowrap;flex:none}
+.ov-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.9}
+.ov-pill.ok{background:#e5f6ec;color:#12a150}
+.ov-pill.bad{background:#fdecea;color:#d92d20}
+.ov-pill.warn{background:#fff4dc;color:#a36a00}
+/* summary boxes */
+.ov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 16px}
+.pv-loc .ov-stat{display:block;width:auto;height:auto;min-height:0;margin:0;padding:14px 16px;text-align:left;font:inherit;color:inherit;letter-spacing:normal;cursor:pointer;transition:border-color .15s,transform .15s}
+.pv-loc .ov-stat:hover{border-color:#b9c6ea;transform:translateY(-1px)}
+.pv-loc .ov-stat:focus-visible{outline:2px solid #4a6cd0;outline-offset:2px}
+.ov-stat .tiny{display:block}
+.ov-stat.ok .ov-v{color:#12a150}
+.ov-stat.warn .ov-v{color:#d48a00}
+.ov-stat.bad .ov-v{color:#d92d20}
+.ov-v{font-size:26px;font-weight:700;line-height:1.45;letter-spacing:normal;margin-top:4px}
+/* search */
+.ov-tools{display:flex;justify-content:flex-end;margin-bottom:12px}
+.pv-loc input.ov-search{display:block;height:40px;width:100%;max-width:100%;min-width:0;margin:0;font:15px "Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;color:var(--ov-ink,#17171c);background:var(--ov-panel,#fff);border:1px solid var(--ov-line,#e4e2dc);border-radius:9px;padding:9px 11px;box-shadow:none;box-sizing:border-box}
+.pv-loc input.ov-search:focus{outline:2px solid #4a6cd0;outline-offset:-1px;border-color:transparent}
+@media (hover:none) and (pointer:coarse){.pv-loc input.ov-search{font-size:16px}}
+/* business cards */
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;align-items:start}
+.ov-biz{display:flex;flex-direction:column;overflow:hidden}
+.ov-bh{display:flex;align-items:flex-start;gap:10px;padding:16px 18px 12px}
+.pv-loc .ov-bh h3{font-size:17px;font-weight:700;margin:0 0 2px}
+.ov-loc{display:flex;align-items:center;gap:10px;width:100%;padding:11px 18px;margin:0;border:0;border-top:1px solid var(--ov-line,#e4e2dc);border-radius:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+button.ov-loc:hover{background:#f8f7f4}
+.ov-bf{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--ov-line,#e4e2dc);margin-top:auto}
+.ov-bf .pv-acts{gap:6px;flex-wrap:nowrap}
+.ov-dot{width:9px;height:9px;border-radius:50%;flex:none;background:#c9c7c0}
+.ov-dot.ok{background:#12a150}.ov-dot.warn{background:#d48a00}.ov-dot.bad{background:#d92d20}
+.ov-chev{color:var(--ov-ink3,#8b8b95);font-size:20px;line-height:1}
+/* the lists behind the summary boxes */
+.ov-list{display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;font-size:15px;line-height:1.45}
+.ov-li{display:flex;align-items:center;gap:12px;width:100%;padding:11px 6px;margin:0;border:0;border-bottom:1px solid var(--ov-line,#e4e2dc);border-radius:0;background:none;font:inherit;color:inherit;text-align:left}
+button.ov-li{cursor:pointer}
+button.ov-li:hover{background:#f8f7f4}
+.ov-li:last-child{border-bottom:0}
+.ov-li b{font-weight:700}
+.ov-empty-card{grid-column:1/-1}
+@media (max-width:700px){.ov-grid{grid-template-columns:1fr}.ov-stats{grid-template-columns:repeat(3,1fr);gap:8px}.pv-loc .ov-stat{padding:10px 10px}.ov-stat .tiny{font-size:11px}.ov-v{font-size:21px}}
+/* this app's colours for the Locations page (light = Signage's values; dark mode follows) */
+body{--ov-panel:var(--card);--ov-line:var(--line);--ov-ink:var(--ink);--ov-ink2:var(--mut);--ov-ink3:var(--grey)}
+body.dark .ov-pill{background:var(--greyl)}body.dark .ov-pill.ok{background:var(--okl)}body.dark .ov-pill.bad{background:var(--badl)}body.dark .ov-pill.warn{background:var(--warnl)}
+body.dark .pv-loc .btn:hover,body.dark button.ov-loc:hover,body.dark button.ov-li:hover{background:var(--greyl)}
+/* sign out: red button, white icon (as Proview Signage, eaae59c) */
+html #top .top-me .top-out,html .top .top-me .top-out{background:#d92d20;border-color:#d92d20;color:#fff}
+html #top .top-me .top-out:hover,html .top .top-me .top-out:hover{background:#b42318;border-color:#b42318;color:#fff}
 /* header title: one line with an ellipsis, as Proview Signage (keeps its width from 701px up; the picker shrinks) */
 html :is(#top,.top):is(#top,.top)>h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:auto}
 @media (min-width:701px){html :is(#top,.top):is(#top,.top)>h2{flex-shrink:0}}
@@ -983,7 +1036,7 @@ const csvCell=v=>{v=String(v??'');return/[",\n]/.test(v)?`"${v.replace(/"/g,'""'
 const toCSV=rows=>rows.map(r=>r.map(csvCell).join(',')).join('\n');
 const COLORS=['#4a6cd0','#6d5fc4','#12a150','#d48a00','#d92d20','#2f84d4','#c0399a','#0f9d9a','#8b8b95','#5a5fbb'];
 
-const ICON={
+const ICON={refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
  pvloc:'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>',
  rocket:'<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 11a12 12 0 0 1 11-8 12 12 0 0 1-8 11l-3 1-1-1z"/><circle cx="15" cy="9" r="1.5"/>',
  dash:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
