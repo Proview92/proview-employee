@@ -653,6 +653,12 @@ body.signed-out #login{background:#f4f3ef}
 .pw2{position:relative}.pw2 input{padding-right:44px}
 .pw2-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:34px;border:0;background:transparent;color:#8b8b95;border-radius:8px;cursor:pointer;display:grid;place-items:center}
 .pw2-eye:hover{color:#17171c;background:rgba(0,0,0,.05)}
+.pw2-eye.on{color:var(--pri,#4a6cd0)}
+/* Add business pop-up (master; as Proview Signage) */
+.pe-abz-cap{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut,#6b6b76);margin:16px 0 0}
+.pe-abz-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.pe-abz-pw{display:flex;gap:6px;align-items:center}.pe-abz-pw .pw2{flex:1;min-width:0}
+.pe-abz-card{display:grid;gap:8px;background:#edf2fd;border:1px solid #cbd8f6;border-radius:10px;padding:10px 14px}.pe-abz-card>div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.pe-abz-card b{font-family:ui-monospace,monospace;word-break:break-all}
+@media (max-width:640px){.pe-abz-grid{grid-template-columns:1fr}}
 .btn2{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 15px;border-radius:10px;border:1px solid #e4e2dc;background:#fff;color:#17171c;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
 .pri2{background:linear-gradient(135deg,#2f84d4 0%,#5a5fbb 100%);border-color:transparent;color:#fff}.pri2:hover{filter:brightness(.95)}
 .ghost2{background:transparent;border-color:transparent;height:32px;padding:0 11px;font-size:13px;border-radius:8px}.ghost2:hover{background:rgba(0,0,0,.05)}
@@ -2696,7 +2702,7 @@ render();
 
 </script>
 <script src="cloud.js?v=20261110c"></script>
-<script src="master.js?v=20261110c"></script>
+<script src="master.js?v=20261110d"></script>
 <script src="hub.js?v=20261110c"></script>
 <script src="hub-app.js?v=20261110c"></script>
 <script>
