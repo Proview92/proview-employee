@@ -382,11 +382,11 @@
     const shown = cards.filter((c) => !q || c.q.includes(q)).map((c) => c.html);
     const body = !L ? '<p class="muted" style="grid-column:1/-1;margin:0">Loading…</p>'
       : !L.length ? `<div class="card ov-empty-card"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 12px;gap:10px"><h3 style="margin:0;font-size:15px;font-weight:650">No businesses yet</h3><p class="muted" style="margin:0">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</p><div class="pv-acts" style="justify-content:center">${addBtn}<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a>${refreshBtn}</div></div></div>`
-      : shown.length ? shown.join('') : `<p class="muted" style="grid-column:1/-1;margin:0">No businesses or locations match “${esc(U.allQ)}”.</p>`;
+      : shown.length ? shown.join('') : `<p class="muted" style="grid-column:1/-1;margin:0">No businesses or locations match “${esc(String(U.allQ || '').trim())}”.</p>`;
     return `<div class="pv-loc"><div class="pv-ph"><p class="muted">Every business on the platform with its locations. Open one to see it as its team does.</p><div class="pv-acts">${refreshBtn}${portalBtn}${addBtn}</div></div>
       ${stats}
       ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      ${L && (L.length > 3 || q) ? `<div class="ov-tools"><input class="ov-search" type="search" placeholder="Search businesses or locations" aria-label="Search businesses or locations" value="${esc(U.allQ || '')}" data-act-input="allQ"></div>` : ''}
+      <div class="ov-tools"><input class="ov-search" type="search" placeholder="Search businesses or locations" aria-label="Search businesses or locations" value="${esc(U.allQ || '')}" data-act-input="allQ"></div>
       <div class="ov-grid">${body}</div></div>`;
   };
   // the summary boxes: each opens the list behind its number (as Proview Signage)
