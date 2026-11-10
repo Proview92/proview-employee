@@ -975,7 +975,7 @@ html .app.collapsed .side :is(.side-foot,#pv-x){flex-direction:column!important;
 html .app.collapsed .side :is(.side-foot,#pv-x)>*{width:30px!important;height:26px!important;padding:6px 8px!important;margin:0!important;justify-content:center!important;box-sizing:border-box!important}
 }
 </style>
-<script src="config.js"></script>
+<script src="config.js?v=20261110b"></script>
 </head>
 <body class="pv-booting">
 <div class="pv-splash" role="status" aria-label="Loading Proview Employee"><div class="logo"></div></div>
@@ -2695,10 +2695,10 @@ setInterval(()=>{if(!isStaff()||!realUser())return;document.querySelectorAll('[d
 render();
 
 </script>
-<script src="cloud.js"></script>
-<script src="master.js"></script>
-<script src="hub.js"></script>
-<script src="hub-app.js"></script>
+<script src="cloud.js?v=20261110b"></script>
+<script src="master.js?v=20261110b"></script>
+<script src="hub.js?v=20261110b"></script>
+<script src="hub-app.js?v=20261110b"></script>
 <script>
 function topMe(act){const t=document.getElementById('top'),vc=document.getElementById('venueCard');if(!t)return;const a=vc&&vc.querySelector('.side-av');if(!a)return;t.querySelector('.top-me')?.remove();const nm=vc.querySelector('.side-me-t b')?.textContent||'',sub=vc.querySelector('.side-me-t span')?.textContent||'';const w=document.createElement('div');w.className='top-me';w.innerHTML=`<button class="top-av" title="${esc(nm+(sub?' · '+sub:''))}" aria-label="My account" aria-haspopup="menu" aria-expanded="false">${esc(a.textContent)}</button><button class="icon-btn top-out" data-act="${act}" title="Sign out" aria-label="Sign out">${ic('logout',18)}</button>`;w.querySelector('.top-av').onclick=e=>{e.stopPropagation();const H=window.PVHub;if(!H||!H.accountMenu){vc.click();return}
   /* the avatar's account menu, as in Proview Signage (HEADER_BAR_STANDARD) */
