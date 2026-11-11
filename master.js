@@ -73,24 +73,45 @@
   const myLic = (mid) => O.licences && O.licences.get(mid);
   const isAdminRole = () => O.role === 'Owner' || O.role === 'Admin';
 
-  // owners and admins: a banner on the dashboard when licences need renewing
+  // owners and admins: a banner on the dashboard with the location licences and the staff package
+  // (migration 012: each location needs a licence and includes up to 10 staff; people over that need a staff add-on)
+  const LS = () => O.licStatus;
+  const locOk = (l) => licOk(l);
   const _dash = VIEWS.dashboard;
   VIEWS.dashboard = function () {
     const html = _dash.apply(this, arguments);
     if (!O.ready || !isAdminRole() || !O.licences) return html;
-    const people = S.members.filter((m) => !m.archived && !m.placeholder);
-    const soon = people.filter((m) => ['expiring', 'grace'].includes(licState(myLic(m.id)).state));
-    const gone = people.filter((m) => ['none', 'expired'].includes(licState(myLic(m.id)).state));
-    // owners and admins buy here; the master admin manages licences on the licence site
     const buyBtn = O.asMaster
       ? `<a class="btn sm pri lic-btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">${ic('shield', 15)} Manage licences</a>`
       : `<button class="btn sm pri lic-btn" data-act="peBuy">${ic('shield', 15)} Buy or renew licences</button>`;
+    const names = (l) => l.slice(0, 4).map((m) => esc(String(m.name || '').split(' ')[0])).join(', ') + (l.length > 4 ? ` and ${l.length - 4} more` : '');
     let banner;
-    if (!soon.length && !gone.length) {
-      banner = `<div class="card pad lic-banner ok" role="status">${ic('shield', 18)}<div class="lic-txt small">${plural(people.length, 'staff licence')} active.</div>${buyBtn}</div>`;
+    const st = LS();
+    if (st) {
+      const locs = (st.locations || []).filter((l) => !l.archived);
+      const badLoc = locs.filter((l) => ['none', 'expired'].includes(licState(l).state));
+      const soonLoc = locs.filter((l) => ['expiring', 'grace'].includes(licState(l).state));
+      const staff = st.staff || [];
+      const need = staff.filter((m) => !m.covered);
+      const soonAdd = staff.filter((m) => m.addon && !m.package && ['expiring', 'grace'].includes(licState(m).state));
+      const pkg = `${st.included} of ${st.allowance} staff included`;
+      const bad = badLoc.length || need.length;
+      const lines = [
+        badLoc.length ? `${badLoc.length === 1 ? esc(badLoc[0].name) + ' has' : plural(badLoc.length, 'location') + ' have'} no working licence: nobody can clock in there. ` : '',
+        need.length ? `Over the package, no staff add-on: ${names(need)}. ` : '',
+        soonLoc.length ? `Location licence ending soon: ${names(soonLoc)}. ` : '',
+        soonAdd.length ? `Staff add-on ending soon: ${names(soonAdd)}. ` : ''].join('');
+      banner = `<div class="card pad lic-banner ${bad ? 'bad' : lines ? '' : 'ok'}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${esc(pkg)}</b><span class="small"> · ${plural(locs.filter((l) => locOk(l)).length, 'licensed location')} (10 staff each)${need.length ? ` · ${plural(need.length, 'person')} need${need.length === 1 ? 's' : ''} a staff add-on` : ''}</span>${lines ? `<div class="small">${lines}${O.asMaster ? '' : 'Buy online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div>` : ''}</div>${buyBtn}</div>`;
     } else {
-      const names = (l) => l.slice(0, 4).map((m) => esc(m.name.split(' ')[0])).join(', ') + (l.length > 4 ? ` and ${l.length - 4} more` : '');
-      banner = `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}${O.asMaster ? '' : 'Renew online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div></div>${buyBtn}</div>`;
+      // older server (no location licences): one licence per person, as before
+      const people = S.members.filter((m) => !m.archived && !m.placeholder);
+      const soon = people.filter((m) => ['expiring', 'grace'].includes(licState(myLic(m.id)).state));
+      const gone = people.filter((m) => ['none', 'expired'].includes(licState(myLic(m.id)).state));
+      if (!soon.length && !gone.length) {
+        banner = `<div class="card pad lic-banner ok" role="status">${ic('shield', 18)}<div class="lic-txt small">${plural(people.length, 'staff licence')} active.</div>${buyBtn}</div>`;
+      } else {
+        banner = `<div class="card pad lic-banner ${gone.length ? 'bad' : ''}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${gone.length ? `${plural(gone.length, 'person')} can’t clock in` : `${plural(soon.length, 'licence')} ending soon`}</b><div class="small">${gone.length ? `Licence ended for ${names(gone)}. ` : ''}${soon.length ? `Ending soon: ${names(soon)}. ` : ''}${O.asMaster ? '' : 'Renew online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div></div>${buyBtn}</div>`;
+      }
     }
     // the Day / Week / Month bar sits flush at the top of the page, so the banner goes just below it
     const t = document.createElement('template'); t.innerHTML = html;
@@ -99,29 +120,54 @@
     return banner + html;
   };
 
-  // owners and admins: buy or renew staff licences online (prices and Stripe links come from the Proview licence portal)
+  // owners and admins: buy or renew location licences and staff add-ons online (prices and Stripe links come from
+  // the Proview licence portal). Stripe client_reference_id (HUB_UNITS.md):
+  //   location  pve__loc__<org>__<location>__<plan>      staff add-on  pve__<org>__<member>__<plan>
   const BUY_ORDER = ['m1', 'm3', 'm6', 'm12', 'm24', 'm36', 'lifetime'];
   const money = (p) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: (p.currency || 'gbp').toUpperCase() }).format(p.amount / 100);
+  const planSel = (id, plans) => {
+    const list = Object.entries(plans || {}).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
+    const def = list.length ? (list.find(([k]) => k === 'm12') || list[0])[0] : '';
+    return list.length ? `<select class="inp" id="${id}">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select>` : '';
+  };
   A.peBuy = async () => {
-    let plans = {};
-    try { const { data } = await O.sb.rpc('licence_buy_plans'); plans = data || {}; } catch (e) {}
-    const list = Object.entries(plans).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
-    if (!list.length) return toast('Online payment isn’t available yet. Contact Proview: altun@proviewtech.co.uk', 'bad');
-    const people = S.members.filter((m) => !m.archived && !m.placeholder && !m._virtual)
-      .sort((a, b) => (licOk(myLic(a.id)) - licOk(myLic(b.id))) || String(a.name).localeCompare(b.name));
-    const def = (list.find(([k]) => k === 'm12') || list[0])[0];
-    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Buy or renew licences</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>
-      <p class="small mut" style="margin:6px 0 10px">Each person needs their own licence. Choose a plan, then press Pay next to the person. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
-      <label class="f">Plan</label><select class="inp" id="peBuyPlan">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select>
-      <div style="margin:12px -24px 0;border-top:1px solid var(--line);max-height:50vh;overflow:auto">${people.map((m) => `<div class="ms-row"><div class="grow"><div class="nm">${esc(m.name || 'Unnamed')}</div><div class="tiny">${esc(m.role || '')}${m.email ? ' · ' + esc(m.email) : ''}</div></div>${licBadge(myLic(m.id) || {})}<button class="btn sm pri" data-act="peBuyGo" data-m="${esc(m.id)}">Pay</button></div>`).join('') || '<div class="ms-empty">No staff yet.</div>'}</div></div>`, 560);
-    A.peBuyGo = (el) => {
-      const k = $('#peBuyPlan').value, p = plans[k]; if (!p) return;
+    let kinds = null, flat = {};
+    try { const { data, error } = await O.sb.rpc('licence_buy_plans_by_kind'); if (!error) kinds = data; } catch (e) {}
+    if (!kinds) { try { const { data } = await O.sb.rpc('licence_buy_plans'); flat = data || {}; } catch (e) {} }
+    const st = LS();
+    const locPlans = kinds ? kinds.location || {} : {}, staffPlans = kinds ? kinds.staff || {} : flat;
+    if (!Object.keys(locPlans).length && !Object.keys(staffPlans).length) return toast('Online payment isn’t available yet. Contact Proview: altun@proviewtech.co.uk', 'bad');
+    const row = (title, sub, badge, act, attrs, can) => `<div class="ms-row" style="display:flex;align-items:center;gap:10px;padding:10px 24px;border-bottom:1px solid var(--line)"><div class="grow" style="flex:1;min-width:0"><div class="nm" style="font-weight:600">${esc(title)}</div><div class="tiny">${esc(sub)}</div></div>${badge}${can ? `<button class="btn sm pri" data-act="${act}" ${attrs}>Pay</button>` : ''}</div>`;
+    let body;
+    if (st) {
+      const locs = (st.locations || []).filter((l) => !l.archived).sort((a, b) => locOk(a) - locOk(b) || String(a.name).localeCompare(b.name));
+      // people who need an add-on first, then anyone who already has one (to renew)
+      const ppl = (st.staff || []).filter((m) => !m.package).sort((a, b) => (a.covered - b.covered) || String(a.name).localeCompare(b.name));
+      const hasLoc = Object.keys(locPlans).length, hasStaff = Object.keys(staffPlans).length;
+      body = `<p class="small mut" style="margin:6px 0 10px">Each location needs its own licence, which includes up to 10 staff (the earliest joined). Anyone over that needs a staff add-on. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
+      <div class="row between" style="margin-top:6px"><b>Locations</b><span class="tiny">${esc(`${st.included} of ${st.allowance} staff included`)}</span></div>
+      ${hasLoc ? `<label class="f">Location plan</label>${planSel('peBuyLocPlan', locPlans)}` : '<p class="small mut">Online payment for location licences isn’t available yet: call 020 8935 5495.</p>'}
+      <div style="margin:8px -24px 0;border-top:1px solid var(--line)">${locs.map((l) => row(l.name, 'Location · includes 10 staff', licBadge(l), 'peBuyLoc', `data-l="${esc(l.id)}"`, hasLoc && licState(l).state !== 'lifetime')).join('') || '<div class="ms-empty" style="padding:10px 24px">No locations yet.</div>'}</div>
+      <div class="row between" style="margin-top:14px"><b>Staff add-ons</b><span class="tiny">${plural(ppl.filter((m) => !m.covered).length, 'person')} need one</span></div>
+      ${ppl.length ? (hasStaff ? `<label class="f">Add-on plan</label>${planSel('peBuyPlan', staffPlans)}` : '<p class="small mut">Online payment for staff add-ons isn’t available yet: call 020 8935 5495.</p>') : ''}
+      <div style="margin:8px -24px 0;border-top:1px solid var(--line);max-height:40vh;overflow:auto">${ppl.map((m) => row(m.name || 'Unnamed', m.covered ? 'Has a staff add-on' : 'Over the package: needs a staff add-on', m.covered ? licBadge(m) : '<span class="chip red">Needs add-on</span>', 'peBuyGo', `data-m="${esc(m.member_id)}"`, hasStaff && licState(m).state !== 'lifetime')).join('') || '<div class="ms-empty" style="padding:10px 24px">Everyone is included in the package.</div>'}</div>`;
+    } else {
+      const people = S.members.filter((m) => !m.archived && !m.placeholder && !m._virtual)
+        .sort((a, b) => (licOk(myLic(a.id)) - licOk(myLic(b.id))) || String(a.name).localeCompare(b.name));
+      body = `<p class="small mut" style="margin:6px 0 10px">Each person needs their own licence. Choose a plan, then press Pay next to the person. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
+      <label class="f">Plan</label>${planSel('peBuyPlan', staffPlans)}
+      <div style="margin:12px -24px 0;border-top:1px solid var(--line);max-height:50vh;overflow:auto">${people.map((m) => row(m.name || 'Unnamed', `${m.role || ''}${m.email ? ' · ' + m.email : ''}`, licBadge(myLic(m.id) || {}), 'peBuyGo', `data-m="${esc(m.id)}"`, true)).join('') || '<div class="ms-empty" style="padding:10px 24px">No staff yet.</div>'}</div>`;
+    }
+    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">Buy or renew licences</b><button class="icon-btn" data-act="closeModal">${ic('x')}</button></div>${body}</div>`, 600);
+    const pay = (p, ref) => {
       const u = new URL(p.link);
-      u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__${O.org}__${el.dataset.m}__${k}`);
+      u.searchParams.set('client_reference_id', ref);
       if (O.user?.email) u.searchParams.set('prefilled_email', O.user.email);
       window.open(u.toString(), '_blank', 'noopener');
       toast('Finish paying in the Stripe tab. The licence updates within about 5 minutes.');
     };
+    A.peBuyGo = (el) => { const k = $('#peBuyPlan')?.value, p = staffPlans[k]; if (p) pay(p, `${p.ref || 'pve'}__${O.org}__${el.dataset.m}__${k}`); };
+    A.peBuyLoc = (el) => { const k = $('#peBuyLocPlan')?.value, p = locPlans[k]; if (p) pay(p, `${p.ref || 'pve'}__loc__${O.org}__${el.dataset.l}__${k}`); };
   };
 
   // staff home: a heads-up when their own access is about to end
@@ -137,15 +183,26 @@
   };
 
   // nobody can clock in once their licence has ended (the server refuses too)
-  function blocked(id) {
-    if (!O.ready || !O.licences || !O.licences.size || licOk(myLic(id))) return false;
-    const m = mem(id); toast(`${m && !m.placeholder ? m.name.split(' ')[0] + '’s' : 'This'} Proview Employee licence has ended, so they can’t clock in`, 'bad');
+  function blocked(id, locId) {
+    if (!O.ready) return false;
+    const st = LS(), m = mem(id), who = m && !m.placeholder ? m.name.split(' ')[0] : 'This person';
+    if (st) {
+      // migration 012: the location must be licensed, and the person included in the package or on a staff add-on
+      const l = locId && (st.locations || []).find((x) => x.id === locId);
+      if (l && !locOk(l)) { toast(`${l.name} has no Proview Employee licence yet, so nobody can clock in there`, 'bad'); return true; }
+      const p = (st.staff || []).find((x) => x.member_id === id) || (st.me && st.me.member_id === id ? st.me : null);
+      if (p && !p.covered) { toast(`${who} isn’t included in the staff package and has no staff add-on, so they can’t clock in`, 'bad'); return true; }
+      return false;
+    }
+    if (!O.licences || !O.licences.size || licOk(myLic(id))) return false;
+    toast(`${m && !m.placeholder ? m.name.split(' ')[0] + '’s' : 'This'} Proview Employee licence has ended, so they can’t clock in`, 'bad');
     return true;
   }
   window.peLicenceBlocks = blocked;
-  [['clockIn', (el) => el?.dataset?.id || S.me], ['doClockIn', () => (typeof D !== 'undefined' && D && D.member) || S.me], ['kIn', () => (typeof K !== 'undefined' && K && K.mid) || null]].forEach(([n, who]) => {
+  const dLoc = () => (typeof D !== 'undefined' && D && D.location) || '';
+  [['clockIn', (el) => el?.dataset?.id || S.me, () => ''], ['doClockIn', () => (typeof D !== 'undefined' && D && D.member) || S.me, dLoc], ['kIn', () => (typeof K !== 'undefined' && K && K.mid) || null, () => '']].forEach(([n, who, where]) => {
     const f = A[n]; if (typeof f !== 'function') return;
-    A[n] = function (el) { const id = who(el); if (id && blocked(id)) return; return f.apply(this, arguments); };
+    A[n] = function (el) { const id = who(el); if (id && blocked(id, where(el))) return; return f.apply(this, arguments); };
   });
 
   // master admins: a shortcut to the licence portal (businesses and licences are managed there)
@@ -275,6 +332,20 @@
      The master's landing page (no business open, O.home), and also reachable from the picker. */
   TITLES.allbiz = 'Locations';
   const ALLB = { list: null, sites: null, inNow: null, busy: false, at: 0, err: '', siteErr: false };
+  // Location licences and the staff package (migration 012; older servers send neither, then the old per-person rules):
+  // a person is fine if covered (in the package or on a valid staff add-on); a location needs its own licence.
+  const ALL_NEEDS = ['none', 'expiring', 'grace', 'expired'];
+  const mLic = (m) => ({ type: m.license_type, expires: m.expires_at });
+  const staffOk = (m) => (m.covered != null ? !!m.covered : licOk(mLic(m)));
+  const staffAttn = (m) => (m.covered != null ? (!m.covered || (!m.package && ['expiring', 'grace'].includes(licState(mLic(m)).state))) : ALL_NEEDS.includes(licState(mLic(m)).state));
+  const locsOf = (b) => (b.locations || []).filter((l) => !l.archived);
+  const locAttn = (l) => ALL_NEEDS.includes(licState(l).state);
+  const staffPill = (m) => {
+    if (m.covered != null && !m.covered) return '<span class="ov-pill bad">Needs staff add-on</span>';
+    if (m.package) return '<span class="ov-pill ok">Included</span>';
+    const s = licSummary(mLic(m)); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.text)}</span>`;
+  };
+  const locPill = (l) => { const s = licSummary(l); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.L.state === 'none' ? 'No licence' : s.text)}</span>`; };
   U.allQ = U.allQ || '';
   async function loadAll(force) {
     if (!O.master || ALLB.busy || (!force && ALLB.at && Date.now() - ALLB.at < 60e3)) return;
@@ -344,9 +415,17 @@
       if (b.suspended) return '<span class="ov-pill bad">Suspended</span>';
       if (noLic(b)) return '<span class="ov-pill bad">No licence</span>';
       if (t) return t.over ? '<span class="ov-pill bad">Trial – expired</span>' : `<span class="ov-pill warn">Trial – ends ${esc(fmtD(t.at))}</span>`;
-      const bad = st.filter((m) => ['none', 'expired'].includes(licState(lic(m)).state)).length;
+      const ls = locsOf(b);
+      if (ls.length && ls.every((l) => licState(l).state === 'none')) return '<span class="ov-pill bad">No location licence</span>';
+      const lb = ls.filter(locAttn).length;
+      if (lb) return `<span class="ov-pill ${ls.some((l) => ['none', 'expired'].includes(licState(l).state)) ? 'bad' : 'warn'}">${lb} location licence${lb === 1 ? ' needs' : 's need'} attention</span>`;
+      if (b.allowance != null) {
+        const need = st.filter((m) => m.covered === false).length;
+        if (need) return `<span class="ov-pill bad">${need} need${need === 1 ? 's' : ''} a staff add-on</span>`;
+      }
+      const bad = st.filter((m) => m.covered == null && ['none', 'expired'].includes(licState(lic(m)).state)).length;
       if (bad) return `<span class="ov-pill bad">${bad} licence${bad === 1 ? ' needs' : 's need'} attention</span>`;
-      const warn = st.filter((m) => ['grace', 'expiring'].includes(licState(lic(m)).state)).length;
+      const warn = st.filter((m) => !m.package && ['grace', 'expiring'].includes(licState(lic(m)).state)).length;
       if (warn) return `<span class="ov-pill warn">${warn} licence${warn === 1 ? '' : 's'} ending soon</span>`;
       if (!st.length) return '<span class="ov-pill">No staff yet</span>';
       if (!sitesOf(b).length) return '<span class="ov-pill">No locations yet</span>';
@@ -357,6 +436,11 @@
       const st = staffOf(b), t = trialOf(b);
       if (noLic(b)) return 'No licence yet';
       if (t) return t.over ? 'Trial expired' : `Trial ends ${fmtD(t.at)}`;
+      if (b.allowance != null && locsOf(b).length) {
+        const ls = locsOf(b), okL = ls.filter((l) => licOk(l)).length, inc = st.filter((m) => m.package).length;
+        if (ls.every((l) => licState(l).state === 'lifetime') && st.every((m) => m.package || licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
+        return `${okL} of ${ls.length} location${ls.length === 1 ? '' : 's'} licensed · ${inc} of ${b.allowance} staff included`;
+      }
       if (!st.length) return 'Add staff to get started';
       if (st.every((m) => licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
       if (st.every((m) => licState(lic(m)).state === 'expired')) return 'Expired';
@@ -371,14 +455,15 @@
         : `${sites.length ? `${sites.length} locations` : ALLB.siteErr ? 'Locations couldn’t load' : 'No locations yet'} · ${staffLine(b)}`;
       const rows = single ? '' : sites.map((x) => {
         const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null;
-        return `<button type="button" class="ov-loc" data-act="peAllOpen" data-id="${esc(b.id)}" data-loc="${esc(x.id)}" title="Open on this location"><span class="ov-dot${n ? ' ok' : ''}"></span><span class="grow">${esc(x.name)}</span><span class="muted small">${n == null ? '' : `${n} clocked in`}</span>${chev}</button>`;
+        const ll = locsOf(b).find((l) => l.id === x.id);
+        return `<button type="button" class="ov-loc" data-act="peAllOpen" data-id="${esc(b.id)}" data-loc="${esc(x.id)}" title="Open on this location"><span class="ov-dot${n ? ' ok' : ''}"></span><span class="grow">${esc(x.name)}</span><span class="muted small">${n == null ? '' : `${n} clocked in`}</span>${ll && locAttn(ll) ? locPill(ll) : ''}${chev}</button>`;
       }).join('');
       const q = [b.name, b.contact_email, ...sites.map((x) => x.name), ...sites.map((x) => x.address)].filter(Boolean).join(' ').toLowerCase();
       return { q, html: `<article class="card ov-biz"><div class="ov-bh"><div class="grow"><h3>${esc(b.name)}</h3><div class="muted small">${esc(sub)}</div></div>${pill(b)}</div>${rows}<div class="ov-bf"><span class="muted small">${esc(licText(b))}</span><button class="btn sm primary" data-act="peAllOpen" data-id="${esc(b.id)}"${single ? ` data-loc="${esc(sites[0].id)}"` : ''}>Open business</button></div></article>` };
     });
     const nSites = L ? L.reduce((t, b) => t + (SI.get(b.id) || []).length, 0) : '…';
     const nStaff = nn((b) => staffOf(b).length), nIn = IN ? nn((b) => inOf(b).length) : '—';
-    const nLic = nn((b) => staffOf(b).filter((m) => licOk(lic(m))).length), nAttn = nn((b) => staffOf(b).filter((m) => NEEDS.includes(licState(lic(m)).state)).length);
+    const nLic = nn((b) => staffOf(b).filter(staffOk).length), nAttn = nn((b) => staffOf(b).filter(staffAttn).length + locsOf(b).filter(locAttn).length);
     const stat = (k, v, list, tone) => `<button type="button" class="card ov-stat${tone ? ' ' + tone : ''}" data-act="peAllList" data-list="${list}" title="Show the list"><div class="tiny">${k}</div><div class="ov-v">${v}</div></button>`;
     const stats = `<div class="ov-stats">${stat('Businesses', L ? L.length : '…', 'biz')}${stat('Locations', nSites, 'loc')}${stat('Staff', nStaff, 'staff')}${stat('Clocked in now', nIn, 'in', nIn > 0 ? 'ok' : '')}${stat('Licensed staff', nLic, 'lic')}${stat('Licences need attention', nAttn, 'attn', nAttn > 0 ? 'bad' : '')}</div>`;
     const addBtn = `<button class="btn primary" data-act="peAddBiz">${ic('plus', 16)} Add business</button>`;
@@ -402,8 +487,8 @@
     const lic = (m) => ({ type: m.license_type, expires: m.expires_at });
     const NEEDS = ['none', 'expiring', 'grace', 'expired'];
     const chev = '<span class="ov-chev" aria-hidden="true">›</span>';
-    const tone = (m) => { const s = licState(lic(m)).state; return s === 'none' || s === 'expired' ? 'bad' : s === 'grace' || s === 'expiring' ? 'warn' : 'ok'; };
-    const pillOf = (m) => { const s = licSummary(lic(m)); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.text)}</span>`; };
+    const tone = (m) => { if (m.covered != null) return !m.covered ? 'bad' : staffAttn(m) ? 'warn' : 'ok'; const s = licState(lic(m)).state; return s === 'none' || s === 'expired' ? 'bad' : s === 'grace' || s === 'expiring' ? 'warn' : 'ok'; };
+    const pillOf = (m) => staffPill(m);
     const biz = L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const people = biz.flatMap((b) => staffOf(b).map((m) => ({ b, m })));
     const locName = (b, id) => (SI.get(b.id) || []).find((x) => x.id === id)?.name || '';
@@ -414,8 +499,12 @@
     else if (k === 'loc') { title = 'Locations'; empty = 'No locations yet.'; items = biz.flatMap((b) => (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name))).map((x) => { const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null; return li(b, x.id, n ? 'ok' : '', x.name, b.name, n == null ? '' : `<span class="muted small">${n} clocked in</span>`); })); }
     else if (k === 'staff') { title = 'Staff'; empty = 'No staff yet.'; items = people.map((p) => person(p, pillOf(p.m))); }
     else if (k === 'in') { title = 'Clocked in now'; empty = IN ? 'Nobody is clocked in right now.' : 'Couldn’t load who is clocked in. Press Refresh.'; items = IN ? people.filter(({ b, m }) => IN.get(b.id)?.has(m.member_id)).map(({ b, m }) => li(b, IN.get(b.id).get(m.member_id) || '', 'ok', m.name || m.email || 'Staff member', [b.name, locName(b, IN.get(b.id).get(m.member_id))].filter((x, i, a) => x && a.indexOf(x) === i).join(' · '), '<span class="muted small">Clocked in</span>')) : []; }
-    else if (k === 'lic') { title = 'Licensed staff'; empty = 'Nobody has a working licence.'; items = people.filter(({ m }) => licOk(lic(m))).map((p) => person(p, pillOf(p.m))); }
-    else { title = 'Licences needing attention'; empty = 'Every licence is fine.'; items = people.filter(({ m }) => NEEDS.includes(licState(lic(m)).state)).map((p) => person(p, pillOf(p.m))); }
+    else if (k === 'lic') { title = 'Licensed staff'; empty = 'Nobody has a working licence.'; items = people.filter(({ m }) => staffOk(m)).map((p) => person(p, pillOf(p.m))); }
+    else {
+      title = 'Licences needing attention'; empty = 'Every licence is fine.';
+      items = [...biz.flatMap((b) => locsOf(b).filter(locAttn).map((l) => li(b, l.id, 'bad', l.name, `${b.name} · location licence`, locPill(l)))),
+        ...people.filter(({ m }) => staffAttn(m)).map((p) => person(p, pillOf(p.m)))];
+    }
     openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">${esc(title)}</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>${items.length ? `<div class="ov-list" style="margin-top:8px">${items.join('')}</div>` : `<p class="small mut" style="margin:10px 0 0">${empty}</p>`}</div>`, 640);
   };
   AFTER.allbiz = function () { loadAll(false); };

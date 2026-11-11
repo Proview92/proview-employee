@@ -369,7 +369,7 @@
     if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
     clearTimeout(O.timer);
     O.org = null; O.orgName = ''; O.member = 'proview-master'; O.role = 'Owner'; O.asMaster = true; O.home = true;
-    O.rows = new Map(); O.snap = new Map(); O.queue = new Map(); O.licences = new Map(); O.myLicence = null;
+    O.rows = new Map(); O.snap = new Map(); O.queue = new Map(); O.licences = new Map(); O.myLicence = null; O.licStatus = null;
     O.applying = true;
     try { S = finishState(stateFromRows([])); } finally { O.applying = false; }
     S.members.push({ id: O.member, name: 'Proview (master admin)', role: 'Owner', email: O.user.email, group: '', archived: false, color: '#5a5fbb', _virtual: true });
@@ -489,6 +489,8 @@
     const { data, error } = await O.sb.from('pe_licences').select('member_id,license_type,expires_at,starts_at').eq('org_id', O.org);
     if (error) throw error;
     (data || []).forEach((l) => O.licences.set(l.member_id, { type: l.license_type, expires: l.expires_at }));
+    // location licences and who the package covers (migration 012; null on an older server)
+    try { const r = await O.sb.rpc('pe_licence_status', { o: O.org }); O.licStatus = r.error ? null : r.data; } catch (e) { O.licStatus = null; }
     if (O.ready) render();
   }
   O.loadLicences = loadLicences;
@@ -535,17 +537,32 @@
   };
   const LIC_PHONE = '020 8935 5495';
   const fmtLong = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  // never licensed: no licence type and no end date (a new business, or a person added with no licence)
-  const neverLicensed = (org) => !org.license_type && !org.license_expires_at;
-  function lockedMsg(org) {
+  // never licensed: no licence type and no end date (a new business, or a person added with no licence);
+  // with location licences (migration 012): no location of the business has ever had one either
+  const neverLicensed = (org, st) => !org.license_type && !org.license_expires_at
+    && !(st?.locations || []).some((l) => l.license_type || l.expires_at);
+  // Location licences (migration 012): each location needs a licence and includes up to 10 staff; people over that
+  // need a staff add-on. st = pe_licence_status (null on an older server: the old per-person wording).
+  const noLocation = (st) => !!st && !(st.locations || []).some((l) => l.ok && !l.archived);
+  function lockedMsg(org, st) {
     const own = org.role === 'Owner' || org.role === 'Admin';
     if (org.suspended) {
       return `${org.org_name}’s Proview Employee account is on hold. ` + (own ? `Contact Proview: ${LIC_PHONE} or altun@proviewtech.co.uk.` : 'Ask your manager or Proview.');
     }
-    if (neverLicensed(org)) {
+    if (neverLicensed(org, st)) {
       return `No licence yet: buy a licence to start using Proview Employee at ${org.org_name}. ` + (own
-        ? `Buy online below, or call ${LIC_PHONE}.`
+        ? `Each location needs its own licence, which includes up to 10 staff. Buy online below, or call ${LIC_PHONE}.`
         : 'Ask your owner or manager to buy a licence.');
+    }
+    if (noLocation(st)) {
+      return `${org.org_name} has no location with a working Proview Employee licence, so nobody can use it at the moment. ` + (own
+        ? `Each location needs its own licence, which includes up to 10 staff. Renew below or call ${LIC_PHONE}. Your data is kept safe in the meantime.`
+        : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.');
+    }
+    if (st && st.me && !st.me.covered) {
+      return `${org.org_name}’s licences include ${st.allowance} staff (10 per licensed location) and they’re all taken, so you need a staff add-on licence. ` + (own
+        ? `Buy one below, or call ${LIC_PHONE}.`
+        : 'Ask your owner or manager to buy you a staff add-on.');
     }
     if (org.license_type === 'trial3') {
       const when = org.license_expires_at ? ' on ' + fmtLong(org.license_expires_at) : '';
@@ -558,7 +575,8 @@
     return why + ' ' + what;
   }
   // The licence screen (inside the sign-in look): the business is locked, but the person stays signed in.
-  // Owners and admins can buy online (plans and Stripe links come from the licence portal through hub_plans).
+  // Owners and admins can buy online (plans and Stripe links come from the licence portal through hub_plans):
+  // a location licence when no location is licensed, else a staff add-on for themselves.
   const BUY_ORDER = ['m1', 'm3', 'm6', 'm12', 'm24', 'm36', 'lifetime'];
   const money = (p) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: (p.currency || 'gbp').toUpperCase() }).format(p.amount / 100);
   async function showLocked(org) {
@@ -569,33 +587,48 @@
     S = finishState(stateFromRows([]));
     closeDrawer(); A.closeModal();
     const own = (org.role === 'Owner' || org.role === 'Admin') && !org.suspended;
-    let plans = {};
-    if (own) { try { const { data } = await O.sb.rpc('licence_buy_plans'); plans = data || {}; } catch (e) {} }
+    let st = null, kinds = null, plans = {}, kind = 'staff';
+    try { const { data, error } = await O.sb.rpc('pe_licence_status', { o: org.org_id }); if (!error) st = data; } catch (e) {}
+    if (own) {
+      try { const { data, error } = await O.sb.rpc('licence_buy_plans_by_kind'); if (!error && data) kinds = data; } catch (e) {}
+      if (st && kinds) { kind = noLocation(st) ? 'location' : 'staff'; plans = kinds[kind] || {}; }
+      else { try { const { data } = await O.sb.rpc('licence_buy_plans'); plans = data || {}; } catch (e) {} }
+    }
     setLoading('');
-    LG = { id: '', show: false, err: '', keep: true, mode: 'locked', org, plans, own };
+    LG = { id: '', show: false, err: '', keep: true, mode: 'locked', org, plans, own, st, kind };
     render();
   }
+  const selStyle = 'height:38px;padding:0 9px;border:1px solid #e4e2dc;border-radius:9px;background:#fff;font:inherit;font-size:15px;color:#17171c;width:100%';
   function lockedForm() {
-    const org = LG.org || {}, list = Object.entries(LG.plans || {}).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
+    const org = LG.org || {}, st = LG.st, list = Object.entries(LG.plans || {}).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
     const def = list.length ? (list.find(([k]) => k === 'm12') || list[0])[0] : '';
-    const never = neverLicensed(org);
-    const buy = LG.own && list.length ? `<label class="field2">Plan<select id="peLkPlan" style="height:38px;padding:0 9px;border:1px solid #e4e2dc;border-radius:9px;background:#fff;font:inherit;font-size:15px;color:#17171c;width:100%">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select></label>
-  <button class="btn2 pri2" type="button" data-act="peLkBuy">${never ? 'Buy a licence' : 'Renew online'}</button>
+    const never = neverLicensed(org, st), loc = LG.kind === 'location';
+    const locs = (st?.locations || []).filter((l) => !l.archived);
+    const addon = !!st && !loc && st.me && !st.me.covered && !org.suspended;
+    const buyLabel = loc ? (never ? 'Buy a location licence' : 'Renew location licence') : addon ? 'Buy a staff add-on' : (never ? 'Buy a licence' : 'Renew online');
+    const buy = LG.own && list.length ? `${loc && locs.length > 1 ? `<label class="field2">Location<select id="peLkLoc" style="${selStyle}">${locs.map((l) => `<option value="${esc(l.id)}" ${l.ok ? '' : 'selected'}>${esc(l.name)}${l.ok ? ' (licensed)' : ''}</option>`).join('')}</select></label>` : ''}<label class="field2">Plan<select id="peLkPlan" style="${selStyle}">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select></label>
+  <button class="btn2 pri2" type="button" data-act="peLkBuy">${buyLabel}</button>
   <p class="auth2-mut" style="margin:0;font-size:13px">You’ll pay securely with Stripe. The licence is added within about 5 minutes; then press Check again.</p>` : '';
+    const title = org.suspended ? 'Account on hold' : never ? 'No licence yet' : addon ? 'Staff add-on needed' : 'Licence ended';
     return `<form class="pe-locked" onsubmit="return false" novalidate>
   <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
-  <h1>${never ? 'No licence yet' : org.suspended ? 'Account on hold' : 'Licence ended'}</h1>
-  <div><div class="lg-err" role="alert">${esc(lockedMsg(org))}</div></div>
+  <h1>${title}</h1>
+  <div><div class="lg-err" role="alert">${esc(lockedMsg(org, st))}</div></div>
   ${buy}
   ${LG.own ? `<p class="auth2-mut" style="margin:0">or call <a href="tel:02089355495"><b>${LIC_PHONE}</b></a></p>` : ''}
   <p class="auth2-mut" style="margin:0;font-size:13px">Signed in as <b>${esc(O.user?.email || '')}</b></p>
   <div class="auth2-row">${LG.own ? '<button type="button" class="btn2 ghost2" data-act="peLkCheck">Check again</button>' : ''}<button type="button" class="btn2 ghost2" data-act="signOut">Sign out</button></div>
  </form>`;
   }
+  // Stripe client_reference_id (HUB_UNITS.md): staff add-on pve__<org>__<member>__<plan>; location pve__loc__<org>__<location>__<plan>
   A.peLkBuy = () => {
     const org = LG.org || {}, k = $('#peLkPlan')?.value, p = (LG.plans || {})[k]; if (!p || !org.org_id) return;
     const u = new URL(p.link);
-    u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__${org.org_id}__${org.member_id}__${k}`);
+    if (LG.kind === 'location') {
+      const locs = (LG.st?.locations || []).filter((l) => !l.archived);
+      const lid = $('#peLkLoc')?.value || (locs.find((l) => !l.ok) || locs[0] || {}).id; if (!lid) return;
+      u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__loc__${org.org_id}__${lid}__${k}`);
+    } else u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__${org.org_id}__${org.member_id}__${k}`);
     if (O.user?.email) u.searchParams.set('prefilled_email', O.user.email);
     window.open(u.toString(), '_blank', 'noopener');
     toast('Finish paying in the Stripe tab. The licence is added within about 5 minutes; then press Check again.');
