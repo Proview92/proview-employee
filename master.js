@@ -427,46 +427,87 @@
     if (id === O.org) { render(); return; }
     A.pePickOrg({ value: id });
   };
-  // "+ Add business" (master only): the business, a location with the same name and its Owner login, in one go, with no
-  // email sent (ADD_BUSINESS_SPEC; as Proview Signage). pe_add_business (supabase/008) does it all-or-nothing on the server.
+  // "+ Add business" (master only), design D (11 Nov 2026): business + owner in one grid, then two choices.
+  //   How will they sign in?  invite (email link, they choose the password) | set a password now (no email)
+  //   Licence                 none yet | 3-day trial (pe_master_trial, migration 011) | set it now (licence portal)
+  // pe_add_business (supabase/008) does the business, location and owner all-or-nothing on the server. For an invite the
+  // login gets a random password nobody sees and Supabase emails a set-your-password link (the app's PASSWORD_RECOVERY
+  // flow asks them to choose one).
   const abReq = (t) => `${t}<span style="color:#d92d20"> *</span>`;
+  const abRand = (n) => { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = crypto.getRandomValues(new Uint32Array(n)); return [...r].map((x) => a[x % a.length]).join(''); };
+  const abOpt = (name, val, title, sub, on, badge) => `<label class="pe-abz-opt${on ? ' on' : ''}"><input type="radio" name="${name}" value="${val}"${on ? ' checked' : ''}><span class="t"><b>${title}</b><span>${sub}</span></span>${badge ? `<span class="pe-abz-badge">${badge}</span>` : ''}</label>`;
   A.peAddBiz = () => {
     if (!O.master) return;
-    openModal(`<div class="pad pe-abz"><div class="row between"><b style="font-size:17px">Add business</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>
-      <label class="f" for="peAbBiz">${abReq('Business name')}</label><input class="inp" id="peAbBiz" placeholder="e.g. Tolians" autocomplete="off">
-      <div class="pe-abz-cap">Owner login</div>
-      <div class="pe-abz-grid"><div><label class="f" for="peAbName">${abReq('Name')}</label><input class="inp" id="peAbName" placeholder="e.g. Sam Taylor" autocomplete="off"></div>
-        <div><label class="f" for="peAbMob">Mobile</label><input class="inp" id="peAbMob" type="tel" placeholder="Optional" autocomplete="off"></div>
-        <div><label class="f" for="peAbEmail">${abReq('Email (they sign in with this)')}</label><input class="inp" id="peAbEmail" type="email" placeholder="name@company.com" autocomplete="off"></div>
-        <div><label class="f" for="peAbPw">${abReq('Password')}</label><div class="pe-abz-pw"><div class="pw2"><input class="inp" id="peAbPw" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="pw2-eye" data-act="peAbEye" aria-label="Show password" title="Show password">${ic('eye', 18)}</button></div><button class="btn sm" type="button" data-act="peAbSuggest">Suggest</button></div></div></div>
-      <p class="small mut" style="margin:12px 0 0">The business gets a location with the same name. This person becomes its Owner / Admin. No email is sent. It starts with no licence: they buy one when they sign in, or set it in the licence portal.</p>
-      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" id="peAbGo" data-act="peAddBizGo">Add business</button></div></div>`, 640);
+    openModal(`<div class="pad pe-abz"><div class="row between"><b style="font-size:20px">Add business</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>
+      <div class="pe-abz-grid">
+        <div><label class="f" for="peAbBiz">${abReq('Business name')}</label><input class="inp" id="peAbBiz" placeholder="e.g. Tolians" autocomplete="off"></div>
+        <div><label class="f" for="peAbName">${abReq('Owner’s name')}</label><input class="inp" id="peAbName" placeholder="e.g. Sam Taylor" autocomplete="off"></div>
+        <div><label class="f" for="peAbEmail">${abReq('Owner’s email')}</label><input class="inp" id="peAbEmail" type="email" placeholder="name@company.com" autocomplete="off"></div>
+        <div><label class="f" for="peAbMob">Mobile <span class="mut" style="font-weight:400">(optional)</span></label><input class="inp" id="peAbMob" type="tel" placeholder="07…" autocomplete="off"></div></div>
+      <fieldset class="pe-abz-set"><legend>How will they sign in?</legend>
+        ${abOpt('peAbSi', 'invite', 'Email them an invite', 'They get an email link and choose their own password.', true, 'Recommended')}
+        ${abOpt('peAbSi', 'pw', 'Set a password now', 'No email is sent. You pass the password on yourself.', false)}
+        <div class="pe-abz-pwrow" id="peAbPwRow" hidden><label class="f" for="peAbPw">${abReq('Password')}</label><div class="pe-abz-pw"><div class="pw2"><input class="inp" id="peAbPw" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="pw2-eye" data-act="peAbEye" aria-label="Show password" title="Show password">${ic('eye', 18)}</button></div><button class="btn sm" type="button" data-act="peAbSuggest">Suggest</button></div></div>
+      </fieldset>
+      <fieldset class="pe-abz-set"><legend>Licence</legend><div class="pe-abz-lic">
+        ${abOpt('peAbLic', 'none', 'None yet', 'They buy one when they sign in.', true)}
+        ${abOpt('peAbLic', 'trial', '3-day trial', 'Full access for 3 days, then it locks.', false)}
+        ${abOpt('peAbLic', 'set', 'Set it now', 'Then set it in the licence portal.', false)}</div>
+      </fieldset>
+      <div class="pe-abz-foot"><span class="small mut">Adds the business and a location with the same name.</span><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" id="peAbGo" data-act="peAddBizGo">Add and send invite</button></div></div>`, 660);
+    const box = document.querySelector('#modal .pe-abz');
+    box.addEventListener('change', (ev) => {
+      const t = ev.target; if (!t || t.type !== 'radio') return;
+      box.querySelectorAll(`input[name="${t.name}"]`).forEach((r) => r.closest('.pe-abz-opt').classList.toggle('on', r.checked));
+      if (t.name === 'peAbSi') { const pw = t.value === 'pw'; $('#peAbPwRow').hidden = !pw; $('#peAbGo').textContent = pw ? 'Add business' : 'Add and send invite'; if (pw) $('#peAbPw').focus(); }
+    });
     $('#peAbBiz').focus();
   };
   const abShow = (show) => { const i = $('#peAbPw'), b = document.querySelector('#modal [data-act=peAbEye]'); if (!i) return; i.type = show ? 'text' : 'password'; if (b) { b.classList.toggle('on', show); b.title = show ? 'Hide password' : 'Show password'; b.setAttribute('aria-label', b.title); } };
   A.peAbEye = () => { const i = $('#peAbPw'); if (!i) return; abShow(i.type === 'password'); i.focus(); };
-  A.peAbSuggest = () => { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = crypto.getRandomValues(new Uint32Array(10)), i = $('#peAbPw'); if (!i) return; i.value = [...r].map((n) => a[n % a.length]).join(''); abShow(true); };
+  A.peAbSuggest = () => { const i = $('#peAbPw'); if (!i) return; i.value = abRand(10); abShow(true); };
   const abCopy = async (text) => { try { await navigator.clipboard.writeText(text); toast('Copied'); } catch (e) { prompt('Copy this:', text); } };
   A.peAddBizGo = async () => {
     if (!O.master) return;   // only the master adds businesses
     const v = (id) => ($('#' + id)?.value || '').trim(), need = (id, msg) => { toast(msg, 'bad'); $('#' + id)?.focus(); };
-    const biz = v('peAbBiz'), name = v('peAbName'), e = v('peAbEmail').toLowerCase(), mob = v('peAbMob'), pw = $('#peAbPw')?.value || '';
+    const pick = (n) => document.querySelector(`#modal input[name="${n}"]:checked`)?.value;
+    const biz = v('peAbBiz'), name = v('peAbName'), e = v('peAbEmail').toLowerCase(), mob = v('peAbMob');
+    const invite = pick('peAbSi') !== 'pw', lic = pick('peAbLic') || 'none';
+    const pw = invite ? abRand(24) : ($('#peAbPw')?.value || '');
     if (biz.length < 2) return need('peAbBiz', 'Enter the business name');
     if (name.length < 2) return need('peAbName', 'Enter the owner’s name');
     if (!/^\S+@\S+\.\S+$/.test(e)) return need('peAbEmail', 'Enter a valid email address');
-    if (pw.length < 6) return need('peAbPw', 'The password needs at least 6 characters');
+    if (!invite && pw.length < 6) return need('peAbPw', 'The password needs at least 6 characters');
     const btn = $('#peAbGo'); if (btn) btn.disabled = true;
     const { data: r, error } = await O.sb.rpc('pe_add_business', { p_business: biz, p_name: name, p_email: e, p_mobile: mob, p_password: pw });
     if (error || !r) { if (btn) btn.disabled = false; toast(O.friendly(error || { message: 'Couldn’t add the business' }), 'bad'); return; }
+    // licence: 3-day trial now (never replaces a licence already set)
+    let licLine = '';
+    if (lic === 'trial') {
+      const { data: t, error: te } = await O.sb.rpc('pe_master_trial', { p_org: r.org_id });
+      licLine = te ? `<p class="pe-abz-warn">The business was added, but the trial couldn’t be started: ${esc(O.friendly(te))}. Set a licence in the licence portal.</p>`
+        : t && t.applied ? `<p class="pe-abz-ok">On a 3-day trial until ${esc(new Date(t.expires_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}.</p>`
+        : `<p class="mut">It already had a licence, so no trial was added.</p>`;
+    } else if (lic === 'none') licLine = `<p class="mut" style="margin:10px 0 0">No licence yet: they buy one when they sign in.</p>`;
+    else licLine = `<p class="mut" style="margin:10px 0 0">Next, set its licence in the licence portal.</p>`;
+    // sign-in: email the invite (new logins only; an existing login keeps its password)
+    let signIn = '';
+    if (r.existing) {
+      signIn = `<p style="margin:10px 0 0">${esc(e)} already had a PROVIEW EMPLOYEE login, so they were made Owner / Admin of this business and keep the password they already use.${invite ? ' No invite was needed.' : ' The password you typed was not applied.'}</p>`;
+    } else if (invite) {
+      const { error: me } = await O.sb.auth.resetPasswordForEmail(e, { redirectTo: location.origin + location.pathname });
+      signIn = me ? `<p class="pe-abz-warn">The business was added, but the invite email couldn’t be sent (${esc(O.friendly(me))}). They can use “Forgot password?” on the sign-in page with ${esc(e)}.</p>`
+        : `<p class="pe-abz-ok">Invite sent to <b>${esc(e)}</b>. They open the email link and choose their own password.</p>`;
+    }
     A.closeModal();
     ALLB.at = 0; pickList = null; await loadAll(true); render();
     const site = location.origin + location.pathname, details = `PROVIEW EMPLOYEE login\n${site}\nEmail: ${e}\nPassword: ${pw}`;
-    openModal(`<div class="pad pe-abz"><div class="row between"><b style="font-size:17px">${esc(biz)} added</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>
-      ${r.existing ? `<p style="margin:10px 0 0">${esc(e)} already had a PROVIEW EMPLOYEE login, so they were made Owner / Admin of this business and keep the password they already use. The password you typed was not applied.</p>`
-        : `<p class="mut" style="margin:10px 0">The owner can sign in now. No email was sent, so pass these on yourself:</p>
+    const pwCard = !r.existing && !invite ? `<p class="mut" style="margin:10px 0">The owner can sign in now. No email was sent, so pass these on yourself:</p>
         <div class="pe-abz-card"><div><span class="mut">Sign in at</span><b>${esc(site.replace(/^https?:\/\//, ''))}</b></div><div><span class="mut">Email</span><b>${esc(e)}</b></div><div><span class="mut">Password</span><b>${esc(pw)}</b></div></div>
-        <button class="btn" type="button" style="margin-top:10px" id="peAbCopy">${ic('copy', 16)} Copy login details</button>`}
-      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Stay here</button><button class="btn pri" data-act="peAllOpen" data-id="${esc(r.org_id)}" data-loc="${esc(r.location_id || '')}">Open business</button></div></div>`, 520);
+        <button class="btn" type="button" style="margin-top:10px" id="peAbCopy">${ic('copy', 16)} Copy login details</button>` : '';
+    openModal(`<div class="pad pe-abz"><div class="row between"><b style="font-size:17px">${esc(biz)} added</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>
+      ${signIn}${pwCard}${licLine}
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap">${lic === 'set' ? `<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Set licence ${ic('link', 14)}</a>` : ''}<button class="btn" data-act="closeModal">Stay here</button><button class="btn pri" data-act="peAllOpen" data-id="${esc(r.org_id)}" data-loc="${esc(r.location_id || '')}">Open business</button></div></div>`, 520);
     const c = $('#peAbCopy'); if (c) c.onclick = () => abCopy(details);
   };
   // on the All sites home there's no business open: only the All sites page, and no business tools
