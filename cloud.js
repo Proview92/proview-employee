@@ -495,7 +495,6 @@
   }
   O.loadLicences = loadLicences;
   const NOT_LINKED = 'Your login isn’t linked to a business yet. Ask your owner or Proview.';
-  const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   // Is the server's set-up-your-business function there? Asked with empty values: it refuses before writing anything.
   async function trialAvailable() {
     if (O.trialRpc != null) return O.trialRpc;
