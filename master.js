@@ -56,18 +56,38 @@
   }
   window.PE_LIC = { licState, licSummary, licBadge, licOk, LIC_TYPES };
 
-  let pickList = null, pickLoading = false;
-  /* ---------------- master admin (Proview) ----------------
-     The master lands on "All sites": every business and its sites, with Open buttons.
-     Licences are managed at license.proviewcrm.co.uk; a new business can also be started
-     here with + Add business (it starts with no licence until one is bought). */
+  /* ---------------- master admin (Proview): MASTER_OPEN_SPEC ----------------
+     No view of every business here. "Open in Employee" in the licence portal signs the master in with a biz claim;
+     sso-login answers { open: <pe_orgs id> } (cloud.js keeps it per tab in sessionStorage pv_master_open), and the
+     master opens exactly that business as its Owner. Without one: "Open a customer from the licence portal". */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   async function open() {
-    ALLB.at = 0; ALLB.list = null; ALLB.sites = null;
-    O.openHome();
-    await loadAll(true);
+    O.masterMissing = false;
+    const id = O.masterOpenId && O.masterOpenId();
+    if (!id) { O.openHome(); return; }
+    let org = null;
+    try { const { data, error } = await O.sb.from('pe_orgs').select('id,name').eq('id', id).maybeSingle(); if (error) throw error; org = data; }
+    catch (e) { org = null; }
+    if (!org) { O.masterMissing = true; O.openHome(); return; }
+    O.masterOrgName = org.name;
+    await O.enterOrg({ org_id: org.id, org_name: org.name, member_id: 'proview-master', role: 'Owner', as_master: true });
   }
   window.PE_MASTER = { open };
+  TITLES.masterhome = 'Proview Employee';
+  VIEWS.masterhome = function () {
+    const t = O.masterMissing ? 'That business couldn’t be found here. It may have been deleted. Open the customer again from the licence portal.'
+      : 'As Proview you open a customer’s Employee from their page in the licence portal (Open in Employee). It opens here, inside that business.';
+    return `<div class="card pad pv-master-home"><h2 style="margin:0 0 8px;font-size:20px">Open a customer from the licence portal</h2><p class="mut" style="margin:0 0 14px">${t}</p><a class="btn pri" href="${LIC_PORTAL}">Go to license.proviewcrm.co.uk</a></div>`;
+  };
+  // "Viewing <Business> as Proview" under the header while the master is inside a customer's business
+  function masterBar() {
+    let b = document.getElementById('pvMasterBar');
+    const on = !!(O.ready && O.master && O.asMaster && O.org && !O.home);
+    if (!on) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('div'); b.id = 'pvMasterBar'; b.className = 'pv-master-bar'; b.setAttribute('role', 'status'); }
+    const top = document.getElementById('top'); if (top && b.previousElementSibling !== top) top.after(b);
+    b.innerHTML = `<span>Viewing <b>${esc((S.org && S.org.name) || O.orgName || O.masterOrgName || 'this business')}</b> as Proview</span><a class="pv-master-back" href="${LIC_PORTAL}">Back to licence portal</a>`;
+  }
 
   /* ---------------- licences inside a business's own app ---------------- */
   const myLic = (mid) => O.licences && O.licences.get(mid);
@@ -220,11 +240,6 @@
      Right after the page title: "All sites (N)" (master) and "Business ▸ Site", grouped by business.
      Choosing one switches straight away: another business opens it (as the old picker did), a site
      sets the dashboard's location filter (U.fLoc), as "Open" on the All sites page does. */
-  async function pickLoad() {
-    if (pickLoading) return; pickLoading = true;
-    try { await loadAll(false); } catch (e) {}
-    pickLoading = false;
-  }
   const byName = (a, b) => String(a.name).localeCompare(String(b.name));
   // the sites (locations) this person may see in the open business
   function mySites() {
@@ -237,60 +252,42 @@
   // [{ id, name, sites: [{ id, name }] | null }]: sites null = not known (another business of a non-master)
   function pickGroups() {
     const cur = O.org ? { id: O.org, name: S.org?.name || 'This business', sites: mySites() } : null;
-    if (O.master) {
-      if (!pickList || !ALLB.sites) pickLoad();
-      const SI = ALLB.sites || new Map();
-      const g = (pickList || []).map((o) => (o.id === O.org && cur ? { ...cur, name: o.name || cur.name } : { id: o.id, name: o.name, sites: (SI.get(o.id) || []).slice().sort(byName) }));
-      if (cur && !g.some((o) => o.id === O.org)) g.push(cur);
-      return g.sort(byName);
-    }
+    if (O.master) return cur ? [cur] : [];   // only the business opened from the licence portal
     const g = (O.orgs || []).filter((o) => !o.locked).map((o) => (o.org_id === O.org && cur ? { ...cur, name: o.org_name || cur.name } : { id: o.org_id, name: o.org_name, sites: null }));
     if (cur && !g.some((o) => o.id === O.org)) g.push(cur);
     return g.sort(byName);
   }
   const ARROW = ' ▸ ';
   function pickHtml() {
-    if (!O.ready || (!O.org && !O.master)) return '';
+    if (!O.ready || !O.org) return '';
     const groups = pickGroups();
     const staff = typeof isStaff === 'function' && isStaff() && !O.asMaster;
     const cur = groups.find((g) => g.id === O.org);
     const box = (t) => `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location" title="${esc(t)}" disabled><option>${esc(t)}</option></select></div>`;
     // one business with one site (or staff, who have no business-wide view): its name, in the same box, disabled
-    if (!O.master && groups.length <= 1) {
+    if (groups.length <= 1) {
       if (!cur) return '';
       if (staff || cur.sites.length <= 1) return box(cur.sites.length === 1 ? cur.sites[0].name : cur.name);
     }
-    const all = O.master && (U.view === 'allbiz' || !O.org);
+    const all = false;
     const here = cur && U.fLoc && cur.sites.some((x) => x.id === U.fLoc) ? U.fLoc : '';
     const sel = (v) => (!all && v === `${O.org}|${here}` ? ' selected' : '');
     const opt = (v, t) => `<option value="${esc(v)}"${sel(v)}>${esc(t)}</option>`;
     const nSites = groups.reduce((t, g) => t + (g.sites ? g.sites.length : 0), 0);
     let opts;
-    if (!O.master && groups.length === 1) {
+    if (groups.length === 1) {
       // one business: "All my sites (N)" + each of their sites, no business prefix
       opts = opt(cur.id + '|', `All my locations (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
-    } else if (O.master) {
-      // master (owner's simpler list): just the site names, sorted; " · Business" only when two share a name.
-      // Businesses with no sites aren't listed (they're on the All sites page, as is each business's whole view).
-      const list = [];
-      groups.forEach((g) => (g.sites || []).forEach((x) => list.push({ v: g.id + '|' + x.id, name: x.name, biz: g.name })));
-      const dup = new Map(); list.forEach((x) => { const k = String(x.name).trim().toLowerCase(); dup.set(k, (dup.get(k) || 0) + 1); });
-      list.forEach((x) => { x.t = dup.get(String(x.name).trim().toLowerCase()) > 1 ? x.name + ' · ' + x.biz : x.name; });
-      list.sort((a, b) => String(a.t).localeCompare(String(b.t)));
-      // a whole business opened from the All sites page has no entry: show it as the (hidden) current choice
-      const curV = `${O.org}|${here}`;
-      opts = (!all && cur && !list.some((x) => x.v === curV) ? `<option value="${esc(curV)}" hidden selected>${esc(cur.name + ' (all locations)')}</option>` : '')
-        + list.map((x) => opt(x.v, x.t)).join('');
     } else {
       // someone in several businesses: one group per business, "Business ▸ All my sites" first
-      const whole = O.master ? 'All locations' : 'All my locations';
+      const whole = 'All my locations';
       opts = groups.map((g) => {
         const o = staff && g.id === O.org ? opt(g.id + '|', g.name)
           : opt(g.id + '|', g.name + ARROW + whole) + (g.sites || []).map((x) => opt(g.id + '|' + x.id, g.name + ARROW + x.name)).join('');
         return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
       }).join('');
     }
-    const allOpt = O.master ? `<option value="__all"${all ? ' selected' : ''}>All locations (${nSites})</option>` : '';
+    const allOpt = '';
     const curT = ((allOpt + opts).match(/<option [^>]*selected[^>]*>([^<]*)<\/option>/) || [])[1] || '';
     return `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location"${curT ? ` title="${curT}"` : ''} data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
   }
@@ -312,269 +309,26 @@
   }
   A.pePickSite = (el) => {
     const v = el.value;
-    if (v === '__all') return A.pePickOrg({ value: '__all' });
     const i = v.indexOf('|'), id = v.slice(0, i), loc = v.slice(i + 1);
     U.fLoc = loc; siteChosen = id !== O.org;
-    if (id === O.org) { if (U.view === 'allbiz') U.view = 'dashboard'; render(); return; }
+    if (id === O.org) { render(); return; }
     A.pePickOrg({ value: id });
   };
   A.pePickOrg = (el) => {
     const id = el.value;
-    if (id === '__all') { if (O.home) return; U.view = 'allbiz'; render(); return; }
-    if (id && id === O.org && U.view === 'allbiz') { U.view = 'dashboard'; render(); return; }
-    if (!id || id === O.org) return;
-    if (U.view === 'allbiz') U.view = 'dashboard';
+    if (!id || id === O.org || O.master) return;   // the master stays in the business they opened
     const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
-    const o = (pickList || []).find((x) => x.id === id);
-    O.enterOrg(mine || { org_id: id, org_name: o?.name || '', member_id: 'proview-master', role: 'Owner', as_master: true });
+    if (mine) O.enterOrg(mine);
   };
-  /* ---------------- "All sites" (master admins): every business and its sites ----------------
-     The master's landing page (no business open, O.home), and also reachable from the picker. */
-  TITLES.allbiz = 'Locations';
-  const ALLB = { list: null, sites: null, inNow: null, busy: false, at: 0, err: '', siteErr: false };
-  // Location licences and the staff package (migration 012; older servers send neither, then the old per-person rules):
-  // a person is fine if covered (in the package or on a valid staff add-on); a location needs its own licence.
-  const ALL_NEEDS = ['none', 'expiring', 'grace', 'expired'];
-  const mLic = (m) => ({ type: m.license_type, expires: m.expires_at });
-  const staffOk = (m) => (m.covered != null ? !!m.covered : licOk(mLic(m)));
-  const staffAttn = (m) => (m.covered != null ? (!m.covered || (!m.package && ['expiring', 'grace'].includes(licState(mLic(m)).state))) : ALL_NEEDS.includes(licState(mLic(m)).state));
-  const locsOf = (b) => (b.locations || []).filter((l) => !l.archived);
-  const locAttn = (l) => ALL_NEEDS.includes(licState(l).state);
-  const staffPill = (m) => {
-    if (m.covered != null && !m.covered) return '<span class="ov-pill bad">Needs staff add-on</span>';
-    if (m.package) return '<span class="ov-pill ok">Included</span>';
-    const s = licSummary(mLic(m)); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.text)}</span>`;
-  };
-  const locPill = (l) => { const s = licSummary(l); return `<span class="ov-pill ${{ green: 'ok', amber: 'warn', red: 'bad' }[s.tone] || ''}">${esc(s.L.state === 'none' ? 'No licence' : s.text)}</span>`; };
-  U.allQ = U.allQ || '';
-  async function loadAll(force) {
-    if (!O.master || ALLB.busy || (!force && ALLB.at && Date.now() - ALLB.at < 60e3)) return;
-    ALLB.busy = true;
-    try {
-      const { data, error } = await O.sb.rpc('pe_master_overview'); if (error) throw error;
-      ALLB.list = data || []; ALLB.err = '';
-      pickList = ALLB.list.map((o) => ({ id: o.id, name: o.name }));
-      // anything cached on this device for a business that no longer exists goes
-      if (O.purgeCache) O.purgeCache(new Set([...ALLB.list.map((o) => o.id), ...(O.orgs || []).map((o) => o.org_id)]));
-    } catch (e) { ALLB.err = 'Couldn’t load the businesses: ' + O.friendly(e); ALLB.list = ALLB.list || []; }
-    // sites = "locations" records of each business (the master may read every business)
-    try {
-      const all = []; let from = 0;
-      for (;;) {
-        const { data, error } = await O.sb.from('pe_rows').select('org_id,id,data').eq('coll', 'locations').eq('deleted', false).order('org_id').order('id').range(from, from + 999);
-        if (error) throw error;
-        all.push(...data); if (data.length < 1000) break; from += 1000;
-      }
-      const by = new Map();
-      all.forEach((r) => { if (r.data && r.data.archived) return; if (!by.has(r.org_id)) by.set(r.org_id, []); by.get(r.org_id).push({ id: r.id, name: (r.data && r.data.name) || 'Location', address: (r.data && r.data.address) || '' }); });
-      ALLB.sites = by; ALLB.siteErr = false;
-    } catch (e) { ALLB.sites = ALLB.sites || new Map(); ALLB.siteErr = true; }
-    // who is clocked in now: open time entries (no clock-out yet), as the app's own in/out status
-    try {
-      const { data, error } = await O.sb.from('pe_rows').select('org_id,member_id,data').eq('coll', 'entries').eq('deleted', false).is('data->>out', null).limit(5000);
-      if (error) throw error;
-      const by = new Map();
-      (data || []).forEach((r) => { const d = r.data || {}; if (d.out != null) return; const mid = d.member || r.member_id; if (!mid) return; if (!by.has(r.org_id)) by.set(r.org_id, new Map()); by.get(r.org_id).set(mid, d.location || ''); });
-      ALLB.inNow = by;
-    } catch (e) { ALLB.inNow = null; }
-    ALLB.at = Date.now(); ALLB.busy = false;
-    if (O.ready && U.view === 'allbiz') render();
-    else if (O.ready) { renderNav(); renderTop(); }
-  }
-  VIEWS.allbiz = function () {
-    if (!O.master) return VIEWS.dashboard();
-    // Proview Signage's Locations page (business cards and clickable summary boxes; LOCATIONS_PAGE_STANDARD)
-    const L = ALLB.list, SI = ALLB.sites || new Map(), IN = ALLB.inNow;
-    const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
-    const sitesOf = (b) => (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name)));
-    const inOf = (b) => (IN ? staffOf(b).filter((m) => IN.get(b.id)?.has(m.member_id)) : null);
-    const lic = (m) => ({ type: m.license_type, expires: m.expires_at });
-    const NEEDS = ['none', 'expiring', 'grace', 'expired'];
-    const fmtD = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const nn = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
-    // an existing trial (from before 11 Nov 2026): the owner's 'trial3' licence, and no paid licence in the business
-    // (trial_ends_at / paid come from pe_master_overview; older servers: worked out from the staff list)
-    const trialOf = (b) => {
-      let ends = b.trial_ends_at, paid = b.paid;
-      if (paid == null) {
-        const st = staffOf(b);
-        paid = st.some((m) => m.license_type && m.license_type !== 'trial3');
-        const t = st.filter((m) => m.role === 'Owner' && m.license_type === 'trial3' && m.expires_at).map((m) => new Date(m.expires_at).getTime());
-        ends = t.length ? Math.max(...t) : null;
-      }
-      if (paid || !ends) return null;
-      const at = new Date(ends).getTime();
-      return { at, over: at <= Date.now() };
-    };
-    // never licensed (a new business: no free trials): no licence type or end date anywhere in it
-    // (licensed_ever comes from pe_master_overview, migration 009; older servers: worked out from the staff list)
-    const noLic = (b) => (b.licensed_ever != null ? !b.licensed_ever : !(b.staff || []).some((m) => m.license_type || m.expires_at));
-    // status pill: grey nothing set up yet · red no licence / expired / suspended · amber trial, grace or ending soon · green all good
-    const pill = (b) => {
-      const st = staffOf(b), t = trialOf(b);
-      if (b.suspended) return '<span class="ov-pill bad">Suspended</span>';
-      if (noLic(b)) return '<span class="ov-pill bad">No licence</span>';
-      if (t) return t.over ? '<span class="ov-pill bad">Trial – expired</span>' : `<span class="ov-pill warn">Trial – ends ${esc(fmtD(t.at))}</span>`;
-      const ls = locsOf(b);
-      if (ls.length && ls.every((l) => licState(l).state === 'none')) return '<span class="ov-pill bad">No location licence</span>';
-      const lb = ls.filter(locAttn).length;
-      if (lb) return `<span class="ov-pill ${ls.some((l) => ['none', 'expired'].includes(licState(l).state)) ? 'bad' : 'warn'}">${lb} location licence${lb === 1 ? ' needs' : 's need'} attention</span>`;
-      if (b.allowance != null) {
-        const need = st.filter((m) => m.covered === false).length;
-        if (need) return `<span class="ov-pill bad">${need} need${need === 1 ? 's' : ''} a staff add-on</span>`;
-      }
-      const bad = st.filter((m) => m.covered == null && ['none', 'expired'].includes(licState(lic(m)).state)).length;
-      if (bad) return `<span class="ov-pill bad">${bad} licence${bad === 1 ? ' needs' : 's need'} attention</span>`;
-      const warn = st.filter((m) => !m.package && ['grace', 'expiring'].includes(licState(lic(m)).state)).length;
-      if (warn) return `<span class="ov-pill warn">${warn} licence${warn === 1 ? '' : 's'} ending soon</span>`;
-      if (!st.length) return '<span class="ov-pill">No staff yet</span>';
-      if (!sitesOf(b).length) return '<span class="ov-pill">No locations yet</span>';
-      return '<span class="ov-pill ok">All good</span>';
-    };
-    // footer licence text, as Signage: "Licences: lifetime", "2 licences", "Trial ends 12 Nov", "Expired"
-    const licText = (b) => {
-      const st = staffOf(b), t = trialOf(b);
-      if (noLic(b)) return 'No licence yet';
-      if (t) return t.over ? 'Trial expired' : `Trial ends ${fmtD(t.at)}`;
-      if (b.allowance != null && locsOf(b).length) {
-        const ls = locsOf(b), okL = ls.filter((l) => licOk(l)).length, inc = st.filter((m) => m.package).length;
-        if (ls.every((l) => licState(l).state === 'lifetime') && st.every((m) => m.package || licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
-        return `${okL} of ${ls.length} location${ls.length === 1 ? '' : 's'} licensed · ${inc} of ${b.allowance} staff included`;
-      }
-      if (!st.length) return 'Add staff to get started';
-      if (st.every((m) => licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
-      if (st.every((m) => licState(lic(m)).state === 'expired')) return 'Expired';
-      const ok = st.filter((m) => licOk(lic(m))).length;
-      return ok === st.length ? `${st.length} licence${st.length === 1 ? '' : 's'}` : `${ok} of ${st.length} licensed`;
-    };
-    const staffLine = (b) => { const st = staffOf(b).length, i = inOf(b); return !st ? 'No staff yet' : `${st} staff${i ? ` · ${i.length} clocked in` : ''}`; };
-    const chev = '<span class="ov-chev" aria-hidden="true">›</span>';
-    const cards = (L || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map((b) => {
-      const sites = sitesOf(b), single = sites.length === 1;
-      const sub = single ? [sites[0].name !== b.name && sites[0].name, staffLine(b)].filter(Boolean).join(' · ')
-        : `${sites.length ? `${sites.length} locations` : ALLB.siteErr ? 'Locations couldn’t load' : 'No locations yet'} · ${staffLine(b)}`;
-      const rows = single ? '' : sites.map((x) => {
-        const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null;
-        const ll = locsOf(b).find((l) => l.id === x.id);
-        return `<button type="button" class="ov-loc" data-act="peAllOpen" data-id="${esc(b.id)}" data-loc="${esc(x.id)}" title="Open on this location"><span class="ov-dot${n ? ' ok' : ''}"></span><span class="grow">${esc(x.name)}</span><span class="muted small">${n == null ? '' : `${n} clocked in`}</span>${ll && locAttn(ll) ? locPill(ll) : ''}${chev}</button>`;
-      }).join('');
-      const q = [b.name, b.contact_email, ...sites.map((x) => x.name), ...sites.map((x) => x.address)].filter(Boolean).join(' ').toLowerCase();
-      return { q, html: `<article class="card ov-biz"><div class="ov-bh"><div class="grow"><h3>${esc(b.name)}</h3><div class="muted small">${esc(sub)}</div></div>${pill(b)}</div>${rows}<div class="ov-bf"><span class="muted small">${esc(licText(b))}</span><button class="btn sm primary" data-act="peAllOpen" data-id="${esc(b.id)}"${single ? ` data-loc="${esc(sites[0].id)}"` : ''}>Open business</button></div></article>` };
-    });
-    const nSites = L ? L.reduce((t, b) => t + (SI.get(b.id) || []).length, 0) : '…';
-    const nStaff = nn((b) => staffOf(b).length), nIn = IN ? nn((b) => inOf(b).length) : '—';
-    const nLic = nn((b) => staffOf(b).filter(staffOk).length), nAttn = nn((b) => staffOf(b).filter(staffAttn).length + locsOf(b).filter(locAttn).length);
-    const stat = (k, v, list, tone) => `<button type="button" class="card ov-stat${tone ? ' ' + tone : ''}" data-act="peAllList" data-list="${list}" title="Show the list"><div class="tiny">${k}</div><div class="ov-v">${v}</div></button>`;
-    const stats = `<div class="ov-stats">${stat('Businesses', L ? L.length : '…', 'biz')}${stat('Locations', nSites, 'loc')}${stat('Staff', nStaff, 'staff')}${stat('Clocked in now', nIn, 'in', nIn > 0 ? 'ok' : '')}${stat('Licensed staff', nLic, 'lic')}${stat('Licences need attention', nAttn, 'attn', nAttn > 0 ? 'bad' : '')}</div>`;
-    const addBtn = `<button class="btn primary" data-act="peAddBiz">${ic('plus', 16)} Add business</button>`;
-    const portalBtn = `<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licences ↗</a>`;
-    const refreshBtn = `<button class="btn" data-act="peAllRefresh" title="Refresh"${ALLB.busy ? ' disabled' : ''}>${ic('refresh', 16)} ${ALLB.busy ? 'Refreshing…' : 'Refresh'}</button>`;
-    const q = String(U.allQ || '').trim().toLowerCase();
-    const shown = cards.filter((c) => !q || c.q.includes(q)).map((c) => c.html);
-    const body = !L ? '<p class="muted" style="grid-column:1/-1;margin:0">Loading…</p>'
-      : !L.length ? `<div class="card ov-empty-card"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 12px;gap:10px"><h3 style="margin:0;font-size:15px;font-weight:650">No businesses yet</h3><p class="muted" style="margin:0">Add a business here (it starts with no licence until one is bought), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</p><div class="pv-acts" style="justify-content:center">${addBtn}<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a>${refreshBtn}</div></div></div>`
-      : shown.length ? shown.join('') : `<p class="muted" style="grid-column:1/-1;margin:0">No businesses or locations match “${esc(String(U.allQ || '').trim())}”.</p>`;
-    return `<div class="pv-loc"><div class="pv-ph"><p class="muted">Every business on the platform with its locations. Open one to see it as its team does.</p><div class="pv-acts">${refreshBtn}${portalBtn}${addBtn}</div></div>
-      ${stats}
-      ${ALLB.err ? `<div class="lg-err" role="alert" style="margin-bottom:12px">${esc(ALLB.err)}</div>` : ''}
-      <div class="ov-tools"><input class="ov-search" type="search" placeholder="Search businesses or locations" aria-label="Search businesses or locations" value="${esc(U.allQ || '')}" data-act-input="allQ"></div>
-      <div class="ov-grid">${body}</div></div>`;
-  };
-  // the summary boxes: each opens the list behind its number (as Proview Signage)
-  A.peAllList = (el) => {
-    const k = el.dataset.list, L = ALLB.list || [], SI = ALLB.sites || new Map(), IN = ALLB.inNow;
-    const staffOf = (b) => (b.staff || []).filter((m) => !m.archived);
-    const lic = (m) => ({ type: m.license_type, expires: m.expires_at });
-    const NEEDS = ['none', 'expiring', 'grace', 'expired'];
-    const chev = '<span class="ov-chev" aria-hidden="true">›</span>';
-    const tone = (m) => { if (m.covered != null) return !m.covered ? 'bad' : staffAttn(m) ? 'warn' : 'ok'; const s = licState(lic(m)).state; return s === 'none' || s === 'expired' ? 'bad' : s === 'grace' || s === 'expiring' ? 'warn' : 'ok'; };
-    const pillOf = (m) => staffPill(m);
-    const biz = L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    const people = biz.flatMap((b) => staffOf(b).map((m) => ({ b, m })));
-    const locName = (b, id) => (SI.get(b.id) || []).find((x) => x.id === id)?.name || '';
-    const li = (b, loc, dotT, title, sub, right) => `<button type="button" class="ov-li" data-act="peAllOpen" data-id="${esc(b.id)}"${loc ? ` data-loc="${esc(loc)}"` : ''}><span class="ov-dot ${dotT}"></span><span class="grow"><b>${esc(title)}</b><span class="tiny" style="display:block">${esc(sub)}</span></span>${right}${chev}</button>`;
-    const person = ({ b, m }, right) => li(b, '', tone(m), m.name || m.email || 'Staff member', [b.name, m.role].filter(Boolean).join(' · '), right);
-    let title, items, empty;
-    if (k === 'biz') { title = 'Businesses'; empty = 'No businesses yet.'; items = biz.map((b) => li(b, '', staffOf(b).some((m) => tone(m) === 'bad') ? 'bad' : staffOf(b).some((m) => tone(m) === 'warn') ? 'warn' : staffOf(b).length ? 'ok' : '', b.name, `${(SI.get(b.id) || []).length} location(s) · ${staffOf(b).length} staff`, '')); }
-    else if (k === 'loc') { title = 'Locations'; empty = 'No locations yet.'; items = biz.flatMap((b) => (SI.get(b.id) || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name))).map((x) => { const n = IN ? staffOf(b).filter((m) => IN.get(b.id)?.get(m.member_id) === x.id).length : null; return li(b, x.id, n ? 'ok' : '', x.name, b.name, n == null ? '' : `<span class="muted small">${n} clocked in</span>`); })); }
-    else if (k === 'staff') { title = 'Staff'; empty = 'No staff yet.'; items = people.map((p) => person(p, pillOf(p.m))); }
-    else if (k === 'in') { title = 'Clocked in now'; empty = IN ? 'Nobody is clocked in right now.' : 'Couldn’t load who is clocked in. Press Refresh.'; items = IN ? people.filter(({ b, m }) => IN.get(b.id)?.has(m.member_id)).map(({ b, m }) => li(b, IN.get(b.id).get(m.member_id) || '', 'ok', m.name || m.email || 'Staff member', [b.name, locName(b, IN.get(b.id).get(m.member_id))].filter((x, i, a) => x && a.indexOf(x) === i).join(' · '), '<span class="muted small">Clocked in</span>')) : []; }
-    else if (k === 'lic') { title = 'Licensed staff'; empty = 'Nobody has a working licence.'; items = people.filter(({ m }) => staffOk(m)).map((p) => person(p, pillOf(p.m))); }
-    else {
-      title = 'Licences needing attention'; empty = 'Every licence is fine.';
-      items = [...biz.flatMap((b) => locsOf(b).filter(locAttn).map((l) => li(b, l.id, 'bad', l.name, `${b.name} · location licence`, locPill(l)))),
-        ...people.filter(({ m }) => staffAttn(m)).map((p) => person(p, pillOf(p.m)))];
-    }
-    openModal(`<div class="pad"><div class="row between"><b style="font-size:17px">${esc(title)}</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>${items.length ? `<div class="ov-list" style="margin-top:8px">${items.join('')}</div>` : `<p class="small mut" style="margin:10px 0 0">${empty}</p>`}</div>`, 640);
-  };
-  AFTER.allbiz = function () { loadAll(false); };
-  A.peAllRefresh = () => { loadAll(true); render(); };
-  A.peAllOpen = (el) => {
-    const id = el.dataset.id, loc = el.dataset.loc || '';
-    if ($('#modal')?.classList.contains('show')) A.closeModal();
-    U.fLoc = loc; U.view = 'dashboard'; siteChosen = id !== O.org;
-    if (id === O.org) { render(); return; }
-    A.pePickOrg({ value: id });
-  };
-  // "+ Add business" (master only), design D (11 Nov 2026): business + owner in one grid, then two choices.
-  //   How will they sign in?  invite (email link, they choose the password) | set a password now (no email)
-  //   Licence                 none yet | 3-day trial (pe_master_trial, migration 011) | set it now (licence portal)
-  // pe_add_business (supabase/008) does the business, location and owner all-or-nothing on the server. For an invite the
-  // login gets a random password nobody sees and Supabase emails a set-your-password link (the app's PASSWORD_RECOVERY
-  // flow asks them to choose one).
-  const abRand = (n) => { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = crypto.getRandomValues(new Uint32Array(n)); return [...r].map((x) => a[x % a.length]).join(''); };
-  A.peAddBiz = () => { if (!O.master) return; window.pvAddBiz({ onSubmit: A.peAddBizGo }); };   // the pop-up: pv-addbiz.js, shared by all six apps
-  const abCopy = async (text) => { try { await navigator.clipboard.writeText(text); toast('Copied'); } catch (e) { prompt('Copy this:', text); } };
-  A.peAddBizGo = async (v, ui) => {
-    if (!O.master) return;   // only the master adds businesses
-    const need = (k, msg) => { toast(msg, 'bad'); ui.input(k)?.focus(); };
-    const biz = v.biz, name = v.name, e = v.email, mob = v.mobile;
-    const invite = v.invite, lic = v.lic;
-    const pw = invite ? abRand(24) : v.password;
-    if (biz.length < 2) return need('biz', 'Enter the business name');
-    if (name.length < 2) return need('name', 'Enter the owner’s name');
-    if (!/^\S+@\S+\.\S+$/.test(e)) return need('email', 'Enter a valid email address');
-    if (!invite && pw.length < 6) return need('pw', 'The password needs at least 6 characters');
-    const { data: r, error } = await O.sb.rpc('pe_add_business', { p_business: biz, p_name: name, p_email: e, p_mobile: mob, p_password: pw });
-    if (error || !r) { toast(O.friendly(error || { message: 'Couldn’t add the business' }), 'bad'); return; }
-    // licence: 3-day trial now (never replaces a licence already set)
-    let licLine = '';
-    if (lic === 'trial') {
-      const { data: t, error: te } = await O.sb.rpc('pe_master_trial', { p_org: r.org_id });
-      licLine = te ? `<p class="pe-abz-warn">The business was added, but the trial couldn’t be started: ${esc(O.friendly(te))}. Set a licence in the licence portal.</p>`
-        : t && t.applied ? `<p class="pe-abz-ok">On a 3-day trial until ${esc(new Date(t.expires_at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}.</p>`
-        : `<p class="mut">It already had a licence, so no trial was added.</p>`;
-    } else if (lic === 'none') licLine = `<p class="mut" style="margin:10px 0 0">No licence yet: they buy one when they sign in.</p>`;
-    else licLine = `<p class="mut" style="margin:10px 0 0">Next, set its licence in the licence portal.</p>`;
-    // sign-in: email the invite (new logins only; an existing login keeps its password)
-    let signIn = '';
-    if (r.existing) {
-      signIn = `<p style="margin:10px 0 0">${esc(e)} already had a PROVIEW EMPLOYEE login, so they were made Owner / Admin of this business and keep the password they already use.${invite ? ' No invite was needed.' : ' The password you typed was not applied.'}</p>`;
-    } else if (invite) {
-      const { error: me } = await O.sb.auth.resetPasswordForEmail(e, { redirectTo: location.origin + location.pathname });
-      signIn = me ? `<p class="pe-abz-warn">The business was added, but the invite email couldn’t be sent (${esc(O.friendly(me))}). They can use “Forgot password?” on the sign-in page with ${esc(e)}.</p>`
-        : `<p class="pe-abz-ok">Invite sent to <b>${esc(e)}</b>. They open the email link and choose their own password.</p>`;
-    }
-    ui.close();
-    ALLB.at = 0; pickList = null; await loadAll(true); render();
-    const site = location.origin + location.pathname, details = `PROVIEW EMPLOYEE login\n${site}\nEmail: ${e}\nPassword: ${pw}`;
-    const pwCard = !r.existing && !invite ? `<p class="mut" style="margin:10px 0">The owner can sign in now. No email was sent, so pass these on yourself:</p>
-        <div class="pe-abz-card"><div><span class="mut">Sign in at</span><b>${esc(site.replace(/^https?:\/\//, ''))}</b></div><div><span class="mut">Email</span><b>${esc(e)}</b></div><div><span class="mut">Password</span><b>${esc(pw)}</b></div></div>
-        <button class="btn" type="button" style="margin-top:10px" id="peAbCopy">${ic('copy', 16)} Copy login details</button>` : '';
-    openModal(`<div class="pad pe-abz"><div class="row between"><b style="font-size:17px">${esc(biz)} added</b><button class="icon-btn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>
-      ${signIn}${pwCard}${licLine}
-      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap">${lic === 'set' ? `<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Set licence ${ic('link', 14)}</a>` : ''}<button class="btn" data-act="closeModal">Stay here</button><button class="btn pri" data-act="peAllOpen" data-id="${esc(r.org_id)}" data-loc="${esc(r.location_id || '')}">Open business</button></div></div>`, 520);
-    const c = $('#peAbCopy'); if (c) c.onclick = () => abCopy(details);
-    return true;
-  };
-  // on the All sites home there's no business open: only the All sites page, and no business tools
+  // the master with no customer opened: only the "Open a customer" page, no business tools
   const _renderNow = renderNow;
   renderNow = function () {
     const home = !!(O.ready && O.home);
-    if (home) U.view = 'allbiz';
+    if (home) U.view = 'masterhome';
     document.body.classList.toggle('pe-home', home);
     try { syncSite(); } catch (e) {}
     const r = _renderNow.apply(this, arguments);
+    try { masterBar(); } catch (e) {}
     // signed out: only the sign-in page is in the page, no app shell or business data behind it
     if (document.body.classList.contains('signed-out')) ['#content', '#top', '#nav', '#venueCard', '#sideFoot'].forEach((q) => { const el = document.querySelector(q); if (el) el.innerHTML = ''; });
     return r;
@@ -624,46 +378,17 @@
     });
     document.querySelectorAll('.side-foot button[data-act=signOut]').forEach((b) => { if (!b.querySelector('.slbl')) b.insertAdjacentHTML('beforeend', '<span class="slbl">Sign out</span>'); });
   };
-  /* ---------------- master: "All sites" first in the left menu; on All sites every page is greyed out
-     until a site is picked (ALLSITES_MENU_STANDARD, the same in all Proview apps) ---------------- */
-  const allMode = () => !!(O.ready && O.master && (O.home || U.view === 'allbiz'));
-  const _renderNav4 = renderNav;
-  renderNav = function () {
-    _renderNav4.apply(this, arguments);
-    const nv = document.querySelector('.side .nav'); if (!nv) return;
-    nv.querySelector('.pe-all-nav')?.remove();
-    document.body.classList.toggle('pe-allmode', allMode());
-    if (!O.ready || !O.master) return;
-    const on = allMode();
-    nv.insertAdjacentHTML('afterbegin', `<button class="pe-all-nav${on ? ' on' : ''}" data-act="peAllSites" title="Locations"${on ? ' aria-current="page"' : ''}>${ic('pvloc', 19)}<span class="lbl">Locations</span><span class="slbl">Locations</span></button>`);
-    if (!on) return;
-    nv.querySelectorAll(':scope > button:not(.pe-all-nav)').forEach((b) => {
-      const name = b.querySelector('.lbl')?.textContent || b.title || '';
-      b.classList.remove('on'); b.classList.add('pe-off');
-      b.setAttribute('aria-disabled', 'true'); b.dataset.act = 'peNeedSite';
-      b.title = name + ' – choose a location first';
-    });
-  };
   // any other toast goes back to the app's usual place
   const _toastPE = toast;
   toast = function () { document.getElementById('toast')?.classList.remove('pe-toast-bottom'); return _toastPE.apply(this, arguments); };
-  A.peAllSites = () => { if (U.view === 'allbiz' || O.home) { U.view = 'allbiz'; render(); return; } A.pePickOrg({ value: '__all' }); };
-  A.peNeedSite = () => {
-    toast('Choose a location in the dropdown first', 'bad');
-    document.getElementById('toast')?.classList.add('pe-toast-bottom');   // phones: not over the drop-down it points at
-    const s = document.querySelector('#top .hdr-pick select'); if (!s) return;
-    const w = s.closest('.hdr-pick');
-    s.focus({ preventScroll: true });
-    w.classList.remove('pe-pulse'); void w.offsetWidth; w.classList.add('pe-pulse');
-    setTimeout(() => w.classList.remove('pe-pulse'), 1100);
-  };
   const css5 = document.createElement('style');
-  css5.textContent = `.side .nav button.pe-off{opacity:.45;cursor:not-allowed}
-.side .nav button.pe-off:hover,.side .nav button.pe-off:focus{background:transparent!important;color:inherit!important}
-.side .nav .pe-all-nav svg{flex:none}
-@media (max-width:700px){#toast.pe-toast-bottom{top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}}
-.top .hdr-pick.pe-pulse select{animation:pePickPulse 1s ease-out}
-@keyframes pePickPulse{0%{box-shadow:0 0 0 0 rgba(90,141,238,.75)}30%{box-shadow:0 0 0 5px rgba(90,141,238,.45)}100%{box-shadow:0 0 0 0 rgba(90,141,238,0)}}`;
+  css5.textContent = `@media (max-width:700px){#toast.pe-toast-bottom{top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}}
+/* the Proview master inside one customer's business, opened from the licence portal (MASTER_OPEN_SPEC) */
+.pv-master-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 20px;background:#fff7e0;border-bottom:1px solid #f1dfa6;color:#5c4400;font-size:13.5px}
+.pv-master-bar b{font-weight:700}.pv-master-bar .pv-master-back{margin-left:auto;color:#5c4400;font-weight:600;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+body.dark .pv-master-bar{background:#3a2f12;border-color:#5c4a1a;color:#f3dc9b}body.dark .pv-master-bar .pv-master-back{color:#f3dc9b}
+.pv-master-home{max-width:560px;margin:8vh auto 0}.pv-master-home a.btn{text-decoration:none}
+body.pe-home .side .nav > button,body.pe-home .side .nav .nav-sec,body.pe-home .top .hdr-cap{display:none!important}`;
   document.head.appendChild(css5);
   const css3 = document.createElement('style');
   css3.textContent = `.slbl{display:none}

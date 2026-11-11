@@ -361,10 +361,15 @@
     });
   }
   // sign-out: no business data stays on the device
-  function clearCache() { lsKeys().forEach((k) => { if (/^(pe-cache:|pe-queue:|pe-site:|pe-last-org:|pvhub\.)/.test(k)) lsDel(k); }); }
+  function clearCache() { lsKeys().forEach((k) => { if (/^(pe-cache:|pe-queue:|pe-site:|pe-last-org:|pvhub\.)/.test(k)) lsDel(k); }); setMasterOpen(null); }
+  // MASTER_OPEN_SPEC: the business the Proview master opened from the licence portal, kept per tab
+  const MASTER_OPEN_KEY = 'pv_master_open';
+  function masterOpenId() { try { return sessionStorage.getItem(MASTER_OPEN_KEY) || null; } catch (e) { return null; } }
+  function setMasterOpen(id) { try { if (id) sessionStorage.setItem(MASTER_OPEN_KEY, String(id)); else sessionStorage.removeItem(MASTER_OPEN_KEY); } catch (e) {} }
+  O.masterOpenId = masterOpenId;
   O.purgeCache = purgeCache;
 
-  // Master "All sites" home: signed in, no business open, nothing synced.
+  // The master with no customer opened from the licence portal: "Open a customer" page, nothing synced.
   function openHome() {
     if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
     clearTimeout(O.timer);
@@ -373,12 +378,12 @@
     O.applying = true;
     try { S = finishState(stateFromRows([])); } finally { O.applying = false; }
     S.members.push({ id: O.member, name: 'Proview (master admin)', role: 'Owner', email: O.user.email, group: '', archived: false, color: '#5a5fbb', _virtual: true });
-    S.org.name = 'Locations';
+    S.org.name = 'Proview';
     O.ready = true;
     setLoading('');
     LG = { id: '', show: false, err: '', keep: true };
     closeDrawer(); A.closeModal();
-    U.view = 'allbiz';
+    U.view = 'masterhome';
     setSync('synced');
     render();
   }
@@ -451,7 +456,7 @@
     // forget businesses on this device that this person can no longer open (and anyone else's data)
     if (offline) purgeCache(null);
     else if (!O.master) purgeCache(new Set(orgs.map((o) => o.org_id)));
-    // master admin (Proview): always land on "All sites" (it purges the cache once it has the list)
+    // master admin (Proview): only the business opened from the licence portal, else the "Open a customer" page
     if (O.master && window.PE_MASTER && !offline) { await window.PE_MASTER.open(); return; }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
@@ -477,7 +482,7 @@
     loadLicences().catch(() => {});
     setLoading('');
     LG = { id: '', show: false, err: '', keep: true };
-    U.view = O.role === 'Member' ? 'sHome' : (U.view && U.view !== 'sHome' && U.view !== 'master' && U.view !== 'allbiz' ? U.view : 'dashboard');
+    U.view = O.role === 'Member' ? 'sHome' : (U.view && !['sHome', 'master', 'allbiz', 'masterhome'].includes(U.view) ? U.view : 'dashboard');
     render();
   }
   O.enterOrg = enterOrg;
@@ -856,6 +861,7 @@
     const r = await fetch(C.SUPABASE_URL + '/functions/v1/sso-login', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.SUPABASE_KEY }, body: JSON.stringify({ assertion: token }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.token_hash) throw new Error(j.error || 'Sign-in with your Proview account failed. Please try again.');
+    setMasterOpen(j.open || null);   // the master opened a customer from the licence portal (only ever sent for the master)
     const cur = (await O.sb.auth.getSession()).data.session?.user;
     if (cur && String(cur.email || '').toLowerCase() !== j.email) await O.sb.auth.signOut();
     const v = await O.sb.auth.verifyOtp({ token_hash: j.token_hash, type: 'magiclink' });
@@ -1054,6 +1060,7 @@
   try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
   setLoading('Loading…');
   render();
+  addEventListener('hashchange', () => { if (/[#&]pv_sso=/.test(location.hash)) location.reload(); });   // a hand-off into an open tab: run it like a fresh load
 
   (async () => {
     try { if (!window.supabase) await loadScript(SB_JS); }
