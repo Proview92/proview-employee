@@ -1,7 +1,8 @@
 /* =====================================================================
    Proview Employee — master admin (Proview) and licence checks
    Same licence rules as Proview Signage, with one licence per staff member:
-   3-day trial; 1, 3, 6, 12, 24 or 36 months; lifetime; custom end date;
+   no licence until one is bought (no free trials); 1, 3, 6, 12, 24 or 36
+   months; lifetime; custom end date (the old 3-day trial can still be set by hand);
    renewals can be added on top; 7 days' grace after the end (none for
    trials), then that person is locked out. The database enforces all of
    this (supabase/schema.sql); this file is the screens.
@@ -59,7 +60,7 @@
   /* ---------------- master admin (Proview) ----------------
      The master lands on "All sites": every business and its sites, with Open buttons.
      Licences are managed at license.proviewcrm.co.uk; a new business can also be started
-     here with the app's own create-company flow (it starts on a 3-day trial). */
+     here with + Add business (it starts with no licence until one is bought). */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   async function open() {
     ALLB.at = 0; ALLB.list = null; ALLB.sites = null;
@@ -320,7 +321,7 @@
     const NEEDS = ['none', 'expiring', 'grace', 'expired'];
     const fmtD = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const nn = (f) => (L ? L.reduce((t, b) => t + f(b), 0) : '…');
-    // free 3-day trial: the owner's 'trial3' licence, and no paid licence in the business
+    // an existing trial (from before 11 Nov 2026): the owner's 'trial3' licence, and no paid licence in the business
     // (trial_ends_at / paid come from pe_master_overview; older servers: worked out from the staff list)
     const trialOf = (b) => {
       let ends = b.trial_ends_at, paid = b.paid;
@@ -334,10 +335,14 @@
       const at = new Date(ends).getTime();
       return { at, over: at <= Date.now() };
     };
-    // status pill: grey nothing set up yet · red expired / suspended · amber trial, grace or ending soon · green all good
+    // never licensed (a new business: no free trials): no licence type or end date anywhere in it
+    // (licensed_ever comes from pe_master_overview, migration 009; older servers: worked out from the staff list)
+    const noLic = (b) => (b.licensed_ever != null ? !b.licensed_ever : !(b.staff || []).some((m) => m.license_type || m.expires_at));
+    // status pill: grey nothing set up yet · red no licence / expired / suspended · amber trial, grace or ending soon · green all good
     const pill = (b) => {
       const st = staffOf(b), t = trialOf(b);
       if (b.suspended) return '<span class="ov-pill bad">Suspended</span>';
+      if (noLic(b)) return '<span class="ov-pill bad">No licence</span>';
       if (t) return t.over ? '<span class="ov-pill bad">Trial – expired</span>' : `<span class="ov-pill warn">Trial – ends ${esc(fmtD(t.at))}</span>`;
       const bad = st.filter((m) => ['none', 'expired'].includes(licState(lic(m)).state)).length;
       if (bad) return `<span class="ov-pill bad">${bad} licence${bad === 1 ? ' needs' : 's need'} attention</span>`;
@@ -350,6 +355,7 @@
     // footer licence text, as Signage: "Licences: lifetime", "2 licences", "Trial ends 12 Nov", "Expired"
     const licText = (b) => {
       const st = staffOf(b), t = trialOf(b);
+      if (noLic(b)) return 'No licence yet';
       if (t) return t.over ? 'Trial expired' : `Trial ends ${fmtD(t.at)}`;
       if (!st.length) return 'Add staff to get started';
       if (st.every((m) => licState(lic(m)).state === 'lifetime')) return 'Licences: lifetime';
@@ -381,7 +387,7 @@
     const q = String(U.allQ || '').trim().toLowerCase();
     const shown = cards.filter((c) => !q || c.q.includes(q)).map((c) => c.html);
     const body = !L ? '<p class="muted" style="grid-column:1/-1;margin:0">Loading…</p>'
-      : !L.length ? `<div class="card ov-empty-card"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 12px;gap:10px"><h3 style="margin:0;font-size:15px;font-weight:650">No businesses yet</h3><p class="muted" style="margin:0">Add a business here (it starts on a 3-day trial), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</p><div class="pv-acts" style="justify-content:center">${addBtn}<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a>${refreshBtn}</div></div></div>`
+      : !L.length ? `<div class="card ov-empty-card"><div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 12px;gap:10px"><h3 style="margin:0;font-size:15px;font-weight:650">No businesses yet</h3><p class="muted" style="margin:0">Add a business here (it starts with no licence until one is bought), or set up businesses and licences in the Proview licence portal. Press Refresh once it’s done.</p><div class="pv-acts" style="justify-content:center">${addBtn}<a class="btn" href="${LIC_PORTAL}" target="_blank" rel="noopener">Open licence portal ↗</a>${refreshBtn}</div></div></div>`
       : shown.length ? shown.join('') : `<p class="muted" style="grid-column:1/-1;margin:0">No businesses or locations match “${esc(String(U.allQ || '').trim())}”.</p>`;
     return `<div class="pv-loc"><div class="pv-ph"><p class="muted">Every business on the platform with its locations. Open one to see it as its team does.</p><div class="pv-acts">${refreshBtn}${portalBtn}${addBtn}</div></div>
       ${stats}
@@ -433,7 +439,7 @@
         <div><label class="f" for="peAbMob">Mobile</label><input class="inp" id="peAbMob" type="tel" placeholder="Optional" autocomplete="off"></div>
         <div><label class="f" for="peAbEmail">${abReq('Email (they sign in with this)')}</label><input class="inp" id="peAbEmail" type="email" placeholder="name@company.com" autocomplete="off"></div>
         <div><label class="f" for="peAbPw">${abReq('Password')}</label><div class="pe-abz-pw"><div class="pw2"><input class="inp" id="peAbPw" type="password" placeholder="At least 6 characters" autocomplete="new-password"><button type="button" class="pw2-eye" data-act="peAbEye" aria-label="Show password" title="Show password">${ic('eye', 18)}</button></div><button class="btn sm" type="button" data-act="peAbSuggest">Suggest</button></div></div></div>
-      <p class="small mut" style="margin:12px 0 0">The business gets a location with the same name. This person becomes its Owner / Admin. No email is sent.</p>
+      <p class="small mut" style="margin:12px 0 0">The business gets a location with the same name. This person becomes its Owner / Admin. No email is sent. It starts with no licence: they buy one when they sign in, or set it in the licence portal.</p>
       <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" id="peAbGo" data-act="peAddBizGo">Add business</button></div></div>`, 640);
     $('#peAbBiz').focus();
   };

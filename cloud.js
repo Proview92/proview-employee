@@ -455,7 +455,7 @@
     if (O.master && window.PE_MASTER && !offline) { await window.PE_MASTER.open(); return; }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
-      // no business and no invite: start a free 3-day trial (server-side, one per email).
+      // no business and no invite: "Set up your business" (server-side; the business starts with no licence).
       // Without the pe_start_trial function (migration 006 not applied) it works as before.
       if (!offline && !O.noSetup && await trialAvailable()) {
         if (meta.company) { await createCompany(meta.name || user.email, meta.company, meta.company); return; }
@@ -464,7 +464,8 @@
       if (meta.company) { await createCompany(meta.name || user.email, meta.company); return; }
       await bounce(NOT_LINKED); return;
     }
-    if (!usable.length) { await bounce(lockedMsg(orgs[0])); return; }
+    // locked (no licence / licence ended): stay signed in on the licence screen, with Buy for owners and admins
+    if (!usable.length) { if (offline) { await bounce(lockedMsg(orgs[0])); return; } showLocked(orgs[0]); return; }
     const last = lsGet('pe-last-org:' + user.id);
     await enterOrg(usable.find((o) => o.org_id === last) || usable[0]);
   }
@@ -493,7 +494,7 @@
   O.loadLicences = loadLicences;
   const NOT_LINKED = 'Your login isn’t linked to a business yet. Ask your owner or Proview.';
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
-  // Is the server's free-trial function there? Asked with empty values: it refuses before writing anything.
+  // Is the server's set-up-your-business function there? Asked with empty values: it refuses before writing anything.
   async function trialAvailable() {
     if (O.trialRpc != null) return O.trialRpc;
     try {
@@ -515,12 +516,12 @@
     const st = LG.st || {};
     return `<form data-act-submit="peTrialGo" autocomplete="on" novalidate class="pe-setup">
   <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
-  <h1>Set up your business</h1><p class="auth2-mut">Start your free 3-day trial. You’ll be the owner, and can add your team straight away.</p>
+  <h1>Set up your business</h1><p class="auth2-mut">You’ll be the owner. Your business starts with no licence: buy a licence next to start using Proview Employee.</p>
   <div>${LG.err ? `<div class="lg-err" role="alert">${esc(LG.err)}</div>` : ''}</div>
   <label class="field2">Business name<input id="stBiz" autocomplete="organization" placeholder="Your business" value="${esc(st.biz || '')}"></label>
   <label class="field2">First location<input id="stSite" placeholder="Same as the business name" value="${esc(st.site || '')}"></label>
   <p class="auth2-mut" style="margin:0;font-size:13px">Signed in as <b>${esc(O.user?.email || '')}</b></p>
-  <button class="btn2 pri2" type="submit">Start free trial</button>
+  <button class="btn2 pri2" type="submit">Set up business</button>
   <div class="auth2-row"><button type="button" class="btn2 ghost2" data-act="signOut">Sign out</button></div>
  </form>`;
   }
@@ -532,23 +533,77 @@
     LG.err = '';
     await createCompany(O.user.user_metadata?.name || O.user.email, biz, site || biz);
   };
+  const LIC_PHONE = '020 8935 5495';
+  const fmtLong = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  // never licensed: no licence type and no end date (a new business, or a person added with no licence)
+  const neverLicensed = (org) => !org.license_type && !org.license_expires_at;
   function lockedMsg(org) {
     const own = org.role === 'Owner' || org.role === 'Admin';
-    if (!org.suspended && org.license_type === 'trial3') {
-      const when = org.license_expires_at ? ' on ' + new Date(org.license_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-      return `The free 3-day trial of Proview Employee at ${org.org_name} ended${when}. ` + (own
-        ? `To carry on, get a licence at ${LIC_PORTAL} or contact Proview: altun@proviewtech.co.uk. Your data is kept safe in the meantime.`
+    if (org.suspended) {
+      return `${org.org_name}’s Proview Employee account is on hold. ` + (own ? `Contact Proview: ${LIC_PHONE} or altun@proviewtech.co.uk.` : 'Ask your manager or Proview.');
+    }
+    if (neverLicensed(org)) {
+      return `No licence yet: buy a licence to start using Proview Employee at ${org.org_name}. ` + (own
+        ? `Buy online below, or call ${LIC_PHONE}.`
+        : 'Ask your owner or manager to buy a licence.');
+    }
+    if (org.license_type === 'trial3') {
+      const when = org.license_expires_at ? ' on ' + fmtLong(org.license_expires_at) : '';
+      return `Your Proview Employee trial at ${org.org_name} ended${when}. ` + (own
+        ? `To carry on, buy a licence below or call ${LIC_PHONE}. Your data is kept safe in the meantime.`
         : 'Ask your manager to get a licence. Your clock-ins, timesheets and documents are kept safe in the meantime.');
     }
-    const why = org.suspended
-      ? `${org.org_name}’s Proview Employee account is on hold.`
-      : `Your Proview Employee licence at ${org.org_name} has ended${org.license_expires_at ? ' (' + new Date(org.license_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ')' : ''}.`;
-    const what = own ? 'To carry on, contact Proview to renew: altun@proviewtech.co.uk.' : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.';
+    const why = `Your Proview Employee licence at ${org.org_name} has ended${org.license_expires_at ? ' (' + fmtLong(org.license_expires_at) + ')' : ''}.`;
+    const what = own ? `To carry on, renew below or call ${LIC_PHONE}.` : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.';
     return why + ' ' + what;
   }
+  // The licence screen (inside the sign-in look): the business is locked, but the person stays signed in.
+  // Owners and admins can buy online (plans and Stripe links come from the licence portal through hub_plans).
+  const BUY_ORDER = ['m1', 'm3', 'm6', 'm12', 'm24', 'm36', 'lifetime'];
+  const money = (p) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: (p.currency || 'gbp').toUpperCase() }).format(p.amount / 100);
+  async function showLocked(org) {
+    if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
+    clearCache();             // a locked business keeps no data on this device
+    O.ready = false; O.home = false; O.org = null; O.member = null; O.role = null;
+    O.rows = new Map(); O.snap = new Map(); O.queue = new Map();
+    S = finishState(stateFromRows([]));
+    closeDrawer(); A.closeModal();
+    const own = (org.role === 'Owner' || org.role === 'Admin') && !org.suspended;
+    let plans = {};
+    if (own) { try { const { data } = await O.sb.rpc('licence_buy_plans'); plans = data || {}; } catch (e) {} }
+    setLoading('');
+    LG = { id: '', show: false, err: '', keep: true, mode: 'locked', org, plans, own };
+    render();
+  }
+  function lockedForm() {
+    const org = LG.org || {}, list = Object.entries(LG.plans || {}).sort((a, b) => BUY_ORDER.indexOf(a[0]) - BUY_ORDER.indexOf(b[0]));
+    const def = list.length ? (list.find(([k]) => k === 'm12') || list[0])[0] : '';
+    const never = neverLicensed(org);
+    const buy = LG.own && list.length ? `<label class="field2">Plan<select id="peLkPlan" style="height:38px;padding:0 9px;border:1px solid #e4e2dc;border-radius:9px;background:#fff;font:inherit;font-size:15px;color:#17171c;width:100%">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select></label>
+  <button class="btn2 pri2" type="button" data-act="peLkBuy">${never ? 'Buy a licence' : 'Renew online'}</button>
+  <p class="auth2-mut" style="margin:0;font-size:13px">You’ll pay securely with Stripe. The licence is added within about 5 minutes; then press Check again.</p>` : '';
+    return `<form class="pe-locked" onsubmit="return false" novalidate>
+  <div class="auth2-fbrand"><span class="logo auth2-logo"></span><span class="wordmark2"><b>PROVIEW</b><span>EMPLOYEE</span></span></div>
+  <h1>${never ? 'No licence yet' : org.suspended ? 'Account on hold' : 'Licence ended'}</h1>
+  <div><div class="lg-err" role="alert">${esc(lockedMsg(org))}</div></div>
+  ${buy}
+  ${LG.own ? `<p class="auth2-mut" style="margin:0">or call <a href="tel:02089355495"><b>${LIC_PHONE}</b></a></p>` : ''}
+  <p class="auth2-mut" style="margin:0;font-size:13px">Signed in as <b>${esc(O.user?.email || '')}</b></p>
+  <div class="auth2-row">${LG.own ? '<button type="button" class="btn2 ghost2" data-act="peLkCheck">Check again</button>' : ''}<button type="button" class="btn2 ghost2" data-act="signOut">Sign out</button></div>
+ </form>`;
+  }
+  A.peLkBuy = () => {
+    const org = LG.org || {}, k = $('#peLkPlan')?.value, p = (LG.plans || {})[k]; if (!p || !org.org_id) return;
+    const u = new URL(p.link);
+    u.searchParams.set('client_reference_id', `${p.ref || 'pve'}__${org.org_id}__${org.member_id}__${k}`);
+    if (O.user?.email) u.searchParams.set('prefilled_email', O.user.email);
+    window.open(u.toString(), '_blank', 'noopener');
+    toast('Finish paying in the Stripe tab. The licence is added within about 5 minutes; then press Check again.');
+  };
+  A.peLkCheck = async () => { if (O.user) { LG = { id: '', show: false, err: '', keep: true }; await afterSignIn(O.user); } };
 
   // A new company, with me as the owner. Optionally brings the company already in this browser.
-  // site given (and not the master): a self-signup free trial through pe_start_trial.
+  // site given (and not the master): self-signup through pe_start_trial (the business starts with no licence).
   async function createCompany(name, company, site) {
     // a new company always starts empty, with only the person who created it
     const local = null, useLocal = false;
@@ -567,7 +622,7 @@
       myId = 'm' + uid();
       s = starterCompany(name, company, email, myId);
     }
-    const trial = site != null && !O.master;
+    const trial = site != null && !O.master;   // self-signup (no licence)
     const { data: org, error } = trial
       ? await O.sb.rpc('pe_start_trial', { company, site_name: site, my_member_id: myId, my_name: name })
       : await O.sb.rpc('pe_create_org', { company, my_member_id: myId });
@@ -577,6 +632,14 @@
       if (trial && error.hint === 'has_business') { LG = { id: '', show: false, err: '', keep: true }; O.noSetup = true; try { await afterSignIn(O.user); } finally { O.noSetup = false; } return; }
       if (trial && error.hint === 'trial_used') { await bounce(error.message); return; }
       LG.err = friendly(error); render(); return;
+    }
+    // self-signup: the business, its first location and the Owner are made on the server with no licence,
+    // so nothing more can be saved yet: go straight to the licence screen (Buy a licence).
+    if (trial) {
+      await O.sb.auth.updateUser({ data: { company: null, pwSet: true } }).catch(() => {});
+      LG = { id: '', show: false, err: '', keep: true };
+      O.noSetup = true; try { await afterSignIn(O.user); } finally { O.noSetup = false; }
+      return;
     }
     O.org = org; O.orgName = company; O.member = myId; O.role = 'Owner';
     // upload files (payslips/P45s) and strip them from the records
@@ -602,7 +665,6 @@
     if (!O.master) await O.sb.auth.updateUser({ data: { company: null, pwSet: true } }).catch(() => {});
     LG = { id: '', show: false, err: '', keep: true };
     await openOrg({ org_id: org, org_name: company, member_id: myId, role: 'Owner' });
-    if (trial) O.myLicence = { type: 'trial3', expires: new Date(Date.now() + 3 * 864e5).toISOString() };
     loadLicences().catch(() => {});
     setLoading('');
     U.view = useLocal ? 'dashboard' : 'getstarted';
@@ -727,6 +789,13 @@
       box.innerHTML = setupForm();
       if (loadingMsg) { box.querySelectorAll('input,button').forEach((x) => (x.disabled = true)); const b = box.querySelector('button.pri2'); if (b) b.textContent = loadingMsg; }
       else if (window.pvSplashDone) window.pvSplashDone();
+      return;
+    }
+    if (LG.mode === 'locked') {
+      const box = el.querySelector('.auth2-form > div');
+      if (!O.user || !box) { LG.mode = 'signin'; return renderLogin(); }
+      box.innerHTML = lockedForm();
+      if (window.pvSplashDone) window.pvSplashDone();
       return;
     }
     // email only (no phone sign-in)
