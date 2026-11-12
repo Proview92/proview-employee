@@ -59,7 +59,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', um, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', um::text, true);
   begin insert into public.pe_rows (org_id, coll, id, data) values (oa, 'locations', 'l2', '{"id":"l2","name":"Second"}'); msg := null; exception when others then msg := sqlerrm; end;
-  out := out || format(E'%s adding a second location refused, master included (%s)\n', case when msg like 'Locations can''t be added here%' then 'PASS' else 'FAIL' end, msg);
+  out := out || format(E'%s adding a second location refused, master included (%s)\n', case when msg like 'Businesses are added in the licence portal (New business)%' then 'PASS' else 'FAIL' end, msg);
   begin update public.pe_rows set deleted = true where org_id = oa and coll = 'locations' and id = 'l1'; msg := null; exception when others then msg := sqlerrm; end;
   out := out || format(E'%s deleting a location refused (%s)\n', case when msg like 'Locations can''t be deleted here%' then 'PASS' else 'FAIL' end, msg);
   begin update public.pe_rows set data = data || '{"archived":true}' where org_id = oa and coll = 'locations' and id = 'l1'; msg := null; exception when others then msg := sqlerrm; end;

@@ -59,7 +59,7 @@
   /* ---------------- master admin (Proview): MASTER_OPEN_SPEC ----------------
      No view of every business here. "Open in Employee" in the licence portal signs the master in with a biz claim;
      sso-login answers { open: <pe_orgs id> } (cloud.js keeps it per tab in sessionStorage pv_master_open), and the
-     master opens exactly that business as its Owner. Without one: "Open a location from the licence portal". */
+     master opens exactly that business as its Owner. Without one: "Open a business from the licence portal". */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   async function open() {
     O.masterMissing = false;
@@ -75,9 +75,9 @@
   window.PE_MASTER = { open };
   TITLES.masterhome = 'Proview Employee';
   VIEWS.masterhome = function () {
-    const t = O.masterMissing ? 'That business couldn’t be found here. It may have been deleted, or linked into another location. Open the location again from the licence portal.'
-      : 'As Proview you open a location’s Employee from its page in the licence portal (Open in Employee). It opens here, inside that business.';
-    return `<div class="card pad pv-master-home"><h2 style="margin:0 0 8px;font-size:20px">Open a location from the licence portal</h2><p class="mut" style="margin:0 0 14px">${t}</p><a class="btn pri" href="${LIC_PORTAL}">Go to license.proviewcrm.co.uk</a></div>`;
+    const t = O.masterMissing ? 'That business couldn’t be found here. It may have been deleted, or linked into another business. Open the business again from the licence portal.'
+      : 'As Proview you open a business’s Employee from its page in the licence portal (Open in Employee). It opens here, inside that business.';
+    return `<div class="card pad pv-master-home"><h2 style="margin:0 0 8px;font-size:20px">Open a business from the licence portal</h2><p class="mut" style="margin:0 0 14px">${t}</p><a class="btn pri" href="${LIC_PORTAL}">Go to license.proviewcrm.co.uk</a></div>`;
   };
   // "Viewing <Business> as Proview" under the header while the master is inside a location's business
   function masterBar() {
@@ -119,9 +119,9 @@
       const lines = [
         badLoc.length ? `${badLoc.length === 1 ? esc(badLoc[0].name) + ' has' : plural(badLoc.length, 'location') + ' have'} no working licence: nobody can clock in there. ` : '',
         need.length ? `Over the package, no staff add-on: ${names(need)}. ` : '',
-        soonLoc.length ? `Location licence ending soon: ${names(soonLoc)}. ` : '',
+        soonLoc.length ? `Business licence ending soon: ${names(soonLoc)}. ` : '',
         soonAdd.length ? `Staff add-on ending soon: ${names(soonAdd)}. ` : ''].join('');
-      banner = `<div class="card pad lic-banner ${bad ? 'bad' : lines ? '' : 'ok'}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${esc(pkg)}</b><span class="small"> · ${plural(locs.filter((l) => locOk(l)).length, 'licensed location')} (10 staff each)${need.length ? ` · ${plural(need.length, 'person')} need${need.length === 1 ? 's' : ''} a staff add-on` : ''}</span>${lines ? `<div class="small">${lines}${O.asMaster ? '' : 'Buy online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div>` : ''}</div>${buyBtn}</div>`;
+      banner = `<div class="card pad lic-banner ${bad ? 'bad' : lines ? '' : 'ok'}" role="status">${ic('shield', 18)}<div class="lic-txt"><b>${esc(pkg)}</b><span class="small"> · ${plural(locs.filter((l) => locOk(l)).length, 'business licence')} (10 staff each)${need.length ? ` · ${plural(need.length, 'person')} need${need.length === 1 ? 's' : ''} a staff add-on` : ''}</span>${lines ? `<div class="small">${lines}${O.asMaster ? '' : 'Buy online, or contact Proview: <a href="mailto:altun@proviewtech.co.uk">altun@proviewtech.co.uk</a>'}</div>` : ''}</div>${buyBtn}</div>`;
     } else {
       // older server (no location licences): one licence per person, as before
       const people = S.members.filter((m) => !m.archived && !m.placeholder);
@@ -164,10 +164,10 @@
       // people who need an add-on first, then anyone who already has one (to renew)
       const ppl = (st.staff || []).filter((m) => !m.package).sort((a, b) => (a.covered - b.covered) || String(a.name).localeCompare(b.name));
       const hasLoc = Object.keys(locPlans).length, hasStaff = Object.keys(staffPlans).length;
-      body = `<p class="small mut" style="margin:6px 0 10px">Each location needs its own licence, which includes up to 10 staff (the earliest joined). Anyone over that needs a staff add-on. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
-      <div class="row between" style="margin-top:6px"><b>Locations</b><span class="tiny">${esc(`${st.included} of ${st.allowance} staff included`)}</span></div>
-      ${hasLoc ? `<label class="f">Location plan</label>${planSel('peBuyLocPlan', locPlans)}` : '<p class="small mut">Online payment for location licences isn’t available yet: call 020 8935 5495.</p>'}
-      <div style="margin:8px -24px 0;border-top:1px solid var(--line)">${locs.map((l) => row(l.name, 'Location · includes 10 staff', licBadge(l), 'peBuyLoc', `data-l="${esc(l.id)}"`, hasLoc && licState(l).state !== 'lifetime')).join('') || '<div class="ms-empty" style="padding:10px 24px">No locations yet.</div>'}</div>
+      body = `<p class="small mut" style="margin:6px 0 10px">Each business needs its own licence, which includes up to 10 staff (the earliest joined). Anyone over that needs a staff add-on. You’ll pay securely with Stripe; time is added on top of any current licence and it updates within about 5 minutes.</p>
+      <div class="row between" style="margin-top:6px"><b>Business licences</b><span class="tiny">${esc(`${st.included} of ${st.allowance} staff included`)}</span></div>
+      ${hasLoc ? `<label class="f">Business licence plan</label>${planSel('peBuyLocPlan', locPlans)}` : '<p class="small mut">Online payment for business licences isn’t available yet: call 020 8935 5495.</p>'}
+      <div style="margin:8px -24px 0;border-top:1px solid var(--line)">${locs.map((l) => row(l.name, 'Business licence · includes 10 staff', licBadge(l), 'peBuyLoc', `data-l="${esc(l.id)}"`, hasLoc && licState(l).state !== 'lifetime')).join('') || '<div class="ms-empty" style="padding:10px 24px">No locations yet.</div>'}</div>
       <div class="row between" style="margin-top:14px"><b>Staff add-ons</b><span class="tiny">${plural(ppl.filter((m) => !m.covered).length, 'person')} need one</span></div>
       ${ppl.length ? (hasStaff ? `<label class="f">Add-on plan</label>${planSel('peBuyPlan', staffPlans)}` : '<p class="small mut">Online payment for staff add-ons isn’t available yet: call 020 8935 5495.</p>') : ''}
       <div style="margin:8px -24px 0;border-top:1px solid var(--line);max-height:40vh;overflow:auto">${ppl.map((m) => row(m.name || 'Unnamed', m.covered ? 'Has a staff add-on' : 'Over the package: needs a staff add-on', m.covered ? licBadge(m) : '<span class="chip red">Needs add-on</span>', 'peBuyGo', `data-m="${esc(m.member_id)}"`, hasStaff && licState(m).state !== 'lifetime')).join('') || '<div class="ms-empty" style="padding:10px 24px">Everyone is included in the package.</div>'}</div>`;
@@ -236,11 +236,11 @@
     const sp = top.querySelector('.sp'); if (sp) sp.after(b); else top.appendChild(b);
   };
 
-  /* ---------------- site drop-down in the top header (same as Proview WiFi) ----------------
-     Right after the page title: "All sites (N)" (master) and "Business ▸ Site", grouped by business.
-     Choosing one switches straight away: another business opens it (as the old picker did), a site
-     sets the dashboard's location filter (U.fLoc), as "Open" on the All sites page does. */
-  const byName = (a, b) => String(a.name).localeCompare(String(b.name));
+  /* ---------------- business drop-down in the top header (MULTI_BUSINESS_PICKER_STANDARD, owner update 07:47) ----------------
+     Business names only, by name: someone in several usable businesses picks one and it opens as a whole (all its
+     locations). One business, and the master inside the business opened from the licence portal: its name, disabled.
+     Pages that need one location have their own location select (the dashboard filter, Organization → This location). */
+  const byName = (a, b) => String(a.name).toLowerCase().localeCompare(String(b.name).toLowerCase());
   // the sites (locations) this person may see in the open business
   function mySites() {
     const L = (S.locations || []).filter((l) => !l.archived).slice().sort(byName);
@@ -249,82 +249,93 @@
     const only = m && Array.isArray(m.sites) && m.sites.length ? m.sites : null;
     return only ? L.filter((l) => only.includes(l.id)) : L;
   }
-  // [{ id, name, sites: [{ id, name }] | null }]: sites null = not known (another business of a non-master)
-  function pickGroups() {
-    const cur = O.org ? { id: O.org, name: S.org?.name || 'This business', sites: mySites() } : null;
-    if (O.master) return cur ? [cur] : [];   // only the business opened from the licence portal
-    const g = (O.orgs || []).filter((o) => !o.locked).map((o) => (o.org_id === O.org && cur ? { ...cur, name: o.org_name || cur.name } : { id: o.org_id, name: o.org_name, sites: null }));
-    if (cur && !g.some((o) => o.id === O.org)) g.push(cur);
-    return g.sort(byName);
+  O.mySites = mySites;
+  // [{ id, name }]: the businesses to list (usable ones: O.usableOrgs, from cloud.js), the open one always included
+  function pickBiz() {
+    const curName = (S.org && S.org.name) || O.orgName || 'This business';
+    if (O.master || !O.orgs) return O.org ? [{ id: O.org, name: curName }] : [];
+    const ok = O.usableOrgs || (O.orgs || []).filter((o) => !o.locked).map((o) => o.org_id);
+    const g = (O.orgs || []).filter((o) => ok.includes(o.org_id) || o.org_id === O.org)
+      .map((o) => ({ id: o.org_id, name: o.org_id === O.org ? (o.org_name || curName) : o.org_name }));
+    if (O.org && !g.some((o) => o.id === O.org)) g.push({ id: O.org, name: curName });
+    return g.filter((o, i) => g.findIndex((x) => x.id === o.id) === i).sort(byName);
   }
-  const ARROW = ' ▸ ';
   function pickHtml() {
     if (!O.ready || !O.org) return '';
-    const groups = pickGroups();
-    const staff = typeof isStaff === 'function' && isStaff() && !O.asMaster;
-    const cur = groups.find((g) => g.id === O.org);
-    const box = (t) => `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location" title="${esc(t)}" disabled><option>${esc(t)}</option></select></div>`;
-    // one business with one site (or staff, who have no business-wide view): its name, in the same box, disabled
-    if (groups.length <= 1) {
-      if (!cur) return '';
-      if (staff || cur.sites.length <= 1) return box(cur.sites.length === 1 ? cur.sites[0].name : cur.name);
-    }
-    const all = false;
-    const here = cur && U.fLoc && cur.sites.some((x) => x.id === U.fLoc) ? U.fLoc : '';
-    const sel = (v) => (!all && v === `${O.org}|${here}` ? ' selected' : '');
-    const opt = (v, t) => `<option value="${esc(v)}"${sel(v)}>${esc(t)}</option>`;
-    const nSites = groups.reduce((t, g) => t + (g.sites ? g.sites.length : 0), 0);
-    let opts;
-    if (groups.length === 1) {
-      // one business: "All my sites (N)" + each of their sites, no business prefix
-      opts = opt(cur.id + '|', `All my locations (${cur.sites.length})`) + cur.sites.map((x) => opt(cur.id + '|' + x.id, x.name)).join('');
-    } else {
-      // someone in several businesses: one group per business, "Business ▸ All my sites" first
-      const whole = 'All my locations';
-      opts = groups.map((g) => {
-        const o = staff && g.id === O.org ? opt(g.id + '|', g.name)
-          : opt(g.id + '|', g.name + ARROW + whole) + (g.sites || []).map((x) => opt(g.id + '|' + x.id, g.name + ARROW + x.name)).join('');
-        return `<optgroup label="${esc(g.name)}">${o}</optgroup>`;
-      }).join('');
-    }
-    const allOpt = '';
-    const curT = ((allOpt + opts).match(/<option [^>]*selected[^>]*>([^<]*)<\/option>/) || [])[1] || '';
-    return `<div class="hdr-pick"><label class="sr" for="hdr-site">Location</label><select id="hdr-site" aria-label="Choose location"${curT ? ` title="${curT}"` : ''} data-act-change="pePickSite">${allOpt}${opts}</select></div>`;
+    const list = pickBiz();
+    const wrap = (sel) => `<div class="hdr-pick"><label class="sr" for="hdr-biz">Business</label>${sel}</div>`;
+    if (list.length <= 1) { const t = list[0]?.name || ''; return wrap(`<select id="hdr-biz" aria-label="Business" title="${esc(t)}" disabled><option>${esc(t)}</option></select>`); }
+    const cur = list.find((o) => o.id === O.org);
+    return wrap(`<select id="hdr-biz" aria-label="Business" title="${esc(cur?.name || '')}" data-act-change="pePickOrg">${list.map((o) => `<option value="${esc(o.id)}"${o.id === O.org ? ' selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`);
   }
-  // the chosen site is remembered per person, per business, on this device (cleared at sign-out, see cloud.js)
-  const siteKey = (org) => (O.user && org ? `pe-site:${O.user.id}:${org}` : '');
-  function saveSite() { const k = siteKey(O.org); if (!k) return; try { localStorage.setItem(k, JSON.stringify(U.fLoc || '')); } catch (e) {} }
-  function savedSite(org) { try { return JSON.parse(localStorage.getItem(siteKey(org)) || '""') || ''; } catch (e) { return ''; } }
-  let siteOrg = null, siteChosen = false;
+  // another business opened: the dashboard's own location filter starts again at "All locations"
+  let siteOrg = null;
   function syncSite() {
     if (!O.ready || !O.org || O.home) { siteOrg = null; return; }
-    if (O.org !== siteOrg) {
-      // another business opened: use the site just chosen, else the one remembered (if it still exists), else all
-      siteOrg = O.org;
-      if (!siteChosen) U.fLoc = savedSite(O.org);
-      siteChosen = false;
-      if (U.fLoc && !mySites().some((x) => x.id === U.fLoc)) U.fLoc = '';
-    }
-    saveSite();
+    if (O.org !== siteOrg) { if (siteOrg !== null) U.fLoc = ''; siteOrg = O.org; if (U.fLoc && !mySites().some((x) => x.id === U.fLoc)) U.fLoc = ''; }
   }
-  A.pePickSite = (el) => {
-    const v = el.value;
-    const i = v.indexOf('|'), id = v.slice(0, i), loc = v.slice(i + 1);
-    U.fLoc = loc; siteChosen = id !== O.org;
-    if (id === O.org) { render(); return; }
-    A.pePickOrg({ value: id });
-  };
   A.pePickOrg = (el) => {
     const id = el.value;
     if (!id || id === O.org || O.master) return;   // the master stays in the business they opened
     const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
     if (mine) O.enterOrg(mine);
   };
-  // the master with no location opened: only the "Open a location" page, no business tools
+  /* ---------------- Organization → "This location" (MULTI_BUSINESS_PICKER_STANDARD: no Locations page) ----------------
+     The Locations page is gone. What it edited (name, address, coordinates, geofence radius) and the location's licence
+     are here, for one location: a location select at the top of the section when the business has more than one
+     (remembered per business on this device), none with one location. Owners and admins save; others see it read-only. */
+  const locKey = () => (O.user && O.org ? `pe-setloc:${O.user.id}:${O.org}` : '');
+  function thisLocId() {
+    const L = mySites(); if (!L.length) return '';
+    let id = U.setLoc && L.some((l) => l.id === U.setLoc) ? U.setLoc : '';
+    if (!id) { try { id = JSON.parse(localStorage.getItem(locKey()) || '""') || ''; } catch (e) { id = ''; } }
+    if (!L.some((l) => l.id === id)) id = L[0].id;
+    U.setLoc = id; return id;
+  }
+  function thisLocationHtml() {
+    const L = mySites();
+    if (!L.length) return `<div class="card pad pe-this-loc" style="margin-top:14px;max-width:1100px"><b style="font-size:15px">This location</b><p class="small mut" style="margin:6px 0 0">No location yet. Businesses are set up by Proview.</p></div>`;
+    const id = thisLocId(), l = locn(id) || L[0];
+    const can = O.asMaster || isAdminRole();
+    const dis = can ? '' : ' disabled';
+    const pick = L.length > 1 ? `<label class="f" for="peThisLoc" style="margin-top:8px">Location</label><select class="inp" id="peThisLoc" aria-label="Location" data-act-change="peThisLocPick" style="max-width:320px">${L.map((x) => `<option value="${esc(x.id)}"${x.id === l.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : '';
+    const st = LS(), lic = st && (st.locations || []).find((x) => x.id === l.id);
+    const licRow = lic ? `<div class="setrow pe-this-lic"><div><b>Business licence</b><div class="d">Each business needs its own licence, which includes up to 10 staff.</div></div><div class="row" style="gap:8px">${licBadge(lic)}${O.asMaster ? `<a class="btn sm" href="${LIC_PORTAL}" target="_blank" rel="noopener">Licence portal ↗</a>` : isAdminRole() && licState(lic).state !== 'lifetime' ? `<button class="btn sm pri" data-act="peBuy">${['none', 'expired'].includes(licState(lic).state) ? 'Buy licence online' : 'Renew online'}</button>` : ''}</div></div>` : '';
+    const r = +l.radius || 300;
+    return `<div class="card pad pe-this-loc" style="margin-top:14px;max-width:1100px"><b style="font-size:15px">This location</b>${pick}
+     <div class="grid2" style="margin-top:6px"><div>${fld('Location name', `<input class="inp" id="peLocName" value="${esc(l.name || '')}"${dis}>`)}</div><div>${fld('Address', `<input class="inp" id="peLocAddr" value="${esc(l.address || '')}"${dis}>`)}</div></div>
+     <div class="grid2"><div>${fld('Coordinates', `<div class="grid2"><input class="inp" id="peLocLat" type="number" step="0.00001" value="${esc(l.lat ?? '')}" placeholder="Latitude"${dis}><input class="inp" id="peLocLng" type="number" step="0.00001" value="${esc(l.lng ?? '')}" placeholder="Longitude"${dis}></div>`)}</div><div>${fld('Geofence radius (metres)', `<input class="inp" id="peLocRad" type="number" min="50" step="10" value="${r}"${dis}>`)}</div></div>
+     <div class="small mut" style="margin-top:4px">Used for geofencing and the live map. To assign locations as geofences, <a href="#" data-act="go" data-v="schedules">go to Work Schedules</a>.</div>
+     ${licRow}
+     ${can ? `<div class="row" style="margin-top:12px;gap:8px"><button class="btn sm" data-act="peLocHere">${ic('target', 14)} Use my current location</button><button class="btn sm pri" data-act="peLocSave">Save location</button></div>` : '<p class="small mut" style="margin:10px 0 0">Only owners and admins can change these.</p>'}</div>`;
+  }
+  A.peThisLocPick = (el) => { U.setLoc = el.value; try { localStorage.setItem(locKey(), JSON.stringify(el.value)); } catch (e) {} render(); };
+  A.peLocHere = () => {
+    if (!navigator.geolocation) return toast('Location not supported here');
+    navigator.geolocation.getCurrentPosition((p) => { const a = $('#peLocLat'), b = $('#peLocLng'); if (a) a.value = (+p.coords.latitude).toFixed(5); if (b) b.value = (+p.coords.longitude).toFixed(5); }, () => toast('Couldn’t get your location', 'bad'));
+  };
+  A.peLocSave = () => {
+    if (!(O.asMaster || isAdminRole())) return;
+    const l = locn(thisLocId()); if (!l) return;
+    const name = ($('#peLocName')?.value || '').trim(), lat = +$('#peLocLat')?.value, lng = +$('#peLocLng')?.value, rad = Math.max(50, +$('#peLocRad')?.value || 300);
+    if (!name) return toast('Name the location', 'bad');
+    if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return toast('Check the coordinates', 'bad');
+    Object.assign(l, { name, address: ($('#peLocAddr')?.value || '').trim(), lat, lng, radius: rad });
+    S.setup.locations = true; save(); render(); toast(`Location ${name} saved`);
+  };
+  const _org = VIEWS.organization;
+  VIEWS.organization = function () {
+    const html = _org.apply(this, arguments);
+    if (!O.ready || O.home || (U.orgTab && U.orgTab !== 'details')) return html;
+    return html + thisLocationHtml();
+  };
+
+  // the master with no location opened: only the "Open a business" page, no business tools
   const _renderNow = renderNow;
   renderNow = function () {
     const home = !!(O.ready && O.home);
     if (home) U.view = 'masterhome';
+    else if (U.view === 'locations') U.view = O.ready && O.role === 'Member' && !O.asMaster ? 'sHome' : 'dashboard';   // the Locations page is gone
     document.body.classList.toggle('pe-home', home);
     try { syncSite(); } catch (e) {}
     const r = _renderNow.apply(this, arguments);
@@ -345,7 +356,7 @@
     if (h2) h2.insertAdjacentHTML('afterend', h); else top.insertAdjacentHTML('afterbegin', h);
   };
   // short names under the icons in the narrow iPad sidebar (same as Proview Bookings)
-  const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Locations', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', locations: 'Locations', projects: 'Projects', organization: 'Company',
+  const SHORT = { getstarted: 'Start', dashboard: 'Home', timesheets: 'Timesheets', rota: 'Rota', tasks: 'Tasks', live: 'Live', timeoff: 'Time off', reports: 'Reports', invoices: 'Invoices', ai: 'AI', people: 'People', payslips: 'Payslips', tracking: 'Tracking', schedules: 'Schedules', timeoffset: 'Leave', projects: 'Projects', organization: 'Company',
     sHome: 'Home', sClock: 'Clock', sTasks: 'Tasks', sSheets: 'Timesheets', sP45: 'Payslips' };
   const _renderNav3 = renderNav;
   renderNav = function () {

@@ -369,7 +369,7 @@
   O.masterOpenId = masterOpenId;
   O.purgeCache = purgeCache;
 
-  // The master with no location opened from the licence portal: "Open a location" page, nothing synced.
+  // The master with no location opened from the licence portal: "Open a business" page, nothing synced.
   function openHome() {
     if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
     clearTimeout(O.timer);
@@ -405,6 +405,7 @@
   async function openOrg(org) {
     O.org = org.org_id; O.orgName = org.org_name; O.member = org.member_id; O.role = org.role; O.asMaster = !!org.as_master; O.home = false;
     lsSet('pe-last-org:' + O.user.id, O.org);
+    if (!O.asMaster) O.rememberLastUsed(O.org);
     let rows;
     try {
       rows = await fetchAll();
@@ -456,7 +457,7 @@
     // forget businesses on this device that this person can no longer open (and anyone else's data)
     if (offline) purgeCache(null);
     else if (!O.master) purgeCache(new Set(orgs.map((o) => o.org_id)));
-    // master admin (Proview): only the business opened from the licence portal, else the "Open a location" page
+    // master admin (Proview): only the business opened from the licence portal, else the "Open a business" page
     if (O.master && window.PE_MASTER && !offline) { await window.PE_MASTER.open(); return; }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
@@ -471,9 +472,31 @@
     }
     // locked (no licence / licence ended): stay signed in on the licence screen, with Buy for owners and admins
     if (!usable.length) { if (offline) { await bounce(lockedMsg(orgs[0])); return; } showLocked(orgs[0]); return; }
-    const last = lsGet('pe-last-org:' + user.id);
-    await enterOrg(usable.find((o) => o.org_id === last) || usable[0]);
+    // MULTI_BUSINESS_PICKER_STANDARD: the business they last used (kept per email through sign-out), else the next
+    // usable one by name. Usable = not locked and at least one location this person can see. A single business is
+    // opened as before.
+    let open = usable;
+    O.usableOrgs = null;
+    if (usable.length > 1 && !offline) {
+      const withLoc = await orgsWithLocations(usable.map((o) => o.org_id));
+      if (withLoc) { const ok = usable.filter((o) => withLoc.has(o.org_id)); if (ok.length) open = ok; O.usableOrgs = ok.map((o) => o.org_id); }
+    }
+    open = open.slice().sort((a, b) => String(a.org_name || '').toLowerCase().localeCompare(String(b.org_name || '').toLowerCase()));
+    const last = lastUsed(user.email) || lsGet('pe-last-org:' + user.id);
+    await enterOrg(open.find((o) => o.org_id === last) || open[0]);
   }
+  // Which of these businesses has a location this person can see (RLS narrows pe_rows to their sites). null: unknown.
+  async function orgsWithLocations(ids) {
+    try {
+      const { data, error } = await O.sb.from('pe_rows').select('org_id,id,data').eq('coll', 'locations').eq('deleted', false).in('org_id', ids);
+      if (error) return null;
+      return new Set((data || []).filter((r) => !(r.data && r.data.archived)).map((r) => r.org_id));
+    } catch (e) { return null; }
+  }
+  // the business last used, per email (survives sign-out: only an id, MULTI_BUSINESS_PICKER_STANDARD)
+  const LAST_KEY = (email) => 'pe-last-used:' + String(email || '').toLowerCase();
+  function lastUsed(email) { return email ? lsGet(LAST_KEY(email)) : null; }
+  O.rememberLastUsed = (org) => { if (O.user && O.user.email && org && !O.master) lsSet(LAST_KEY(O.user.email), org); };
   async function enterOrg(org) {
     setLoading('Opening your company…');
     try { await openOrg(org); }
@@ -555,16 +578,16 @@
     }
     if (neverLicensed(org, st)) {
       return `No licence yet: buy a licence to start using Proview Employee at ${org.org_name}. ` + (own
-        ? `Each location needs its own licence, which includes up to 10 staff. Buy online below, or call ${LIC_PHONE}.`
+        ? `Each business needs its own licence, which includes up to 10 staff. Buy online below, or call ${LIC_PHONE}.`
         : 'Ask your owner or manager to buy a licence.');
     }
     if (noLocation(st)) {
       return `${org.org_name} has no location with a working Proview Employee licence, so nobody can use it at the moment. ` + (own
-        ? `Each location needs its own licence, which includes up to 10 staff. Renew below or call ${LIC_PHONE}. Your data is kept safe in the meantime.`
+        ? `Each business needs its own licence, which includes up to 10 staff. Renew below or call ${LIC_PHONE}. Your data is kept safe in the meantime.`
         : 'Ask your manager to renew it. Your clock-ins, timesheets and documents are kept safe in the meantime.');
     }
     if (st && st.me && !st.me.covered) {
-      return `${org.org_name}’s licences include ${st.allowance} staff (10 per licensed location) and they’re all taken, so you need a staff add-on licence. ` + (own
+      return `${org.org_name}’s licences include ${st.allowance} staff (10 per business licence) and they’re all taken, so you need a staff add-on licence. ` + (own
         ? `Buy one below, or call ${LIC_PHONE}.`
         : 'Ask your owner or manager to buy you a staff add-on.');
     }
@@ -609,7 +632,7 @@
     const never = neverLicensed(org, st), loc = LG.kind === 'location';
     const locs = (st?.locations || []).filter((l) => !l.archived);
     const addon = !!st && !loc && st.me && !st.me.covered && !org.suspended;
-    const buyLabel = loc ? (never ? 'Buy a location licence' : 'Renew location licence') : addon ? 'Buy a staff add-on' : (never ? 'Buy a licence' : 'Renew online');
+    const buyLabel = loc ? (never ? 'Buy a business licence' : 'Renew business licence') : addon ? 'Buy a staff add-on' : (never ? 'Buy a licence' : 'Renew online');
     const buy = LG.own && list.length ? `${loc && locs.length > 1 ? `<label class="field2">Location<select id="peLkLoc" style="${selStyle}">${locs.map((l) => `<option value="${esc(l.id)}" ${l.ok ? '' : 'selected'}>${esc(l.name)}${l.ok ? ' (licensed)' : ''}</option>`).join('')}</select></label>` : ''}<label class="field2">Plan<select id="peLkPlan" style="${selStyle}">${list.map(([k, p]) => `<option value="${esc(k)}" ${k === def ? 'selected' : ''}>${esc(p.label || k)} — ${esc(money(p))}</option>`).join('')}</select></label>
   <button class="btn2 pri2" type="button" data-act="peLkBuy">${buyLabel}</button>
   <p class="auth2-mut" style="margin:0;font-size:13px">You’ll pay securely with Stripe. The licence is added within about 5 minutes; then press Check again.</p>` : '';
