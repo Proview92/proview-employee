@@ -369,7 +369,7 @@
   O.masterOpenId = masterOpenId;
   O.purgeCache = purgeCache;
 
-  // The master with no customer opened from the licence portal: "Open a customer" page, nothing synced.
+  // The master with no location opened from the licence portal: "Open a location" page, nothing synced.
   function openHome() {
     if (O.channel) { try { O.sb.removeChannel(O.channel); } catch (e) {} O.channel = null; }
     clearTimeout(O.timer);
@@ -456,7 +456,7 @@
     // forget businesses on this device that this person can no longer open (and anyone else's data)
     if (offline) purgeCache(null);
     else if (!O.master) purgeCache(new Set(orgs.map((o) => o.org_id)));
-    // master admin (Proview): only the business opened from the licence portal, else the "Open a customer" page
+    // master admin (Proview): only the business opened from the licence portal, else the "Open a location" page
     if (O.master && window.PE_MASTER && !offline) { await window.PE_MASTER.open(); return; }
     if (!orgs.length) {
       const meta = user.user_metadata || {};
@@ -861,7 +861,7 @@
     const r = await fetch(C.SUPABASE_URL + '/functions/v1/sso-login', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.SUPABASE_KEY }, body: JSON.stringify({ assertion: token }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.token_hash) throw new Error(j.error || 'Sign-in with your Proview account failed. Please try again.');
-    setMasterOpen(j.open || null);   // the master opened a customer from the licence portal (only ever sent for the master)
+    setMasterOpen(j.open || null);   // the master opened a location from the licence portal (only ever sent for the master)
     const cur = (await O.sb.auth.getSession()).data.session?.user;
     if (cur && String(cur.email || '').toLowerCase() !== j.email) await O.sb.auth.signOut();
     const v = await O.sb.auth.verifyOtp({ token_hash: j.token_hash, type: 'magiclink' });

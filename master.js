@@ -59,7 +59,7 @@
   /* ---------------- master admin (Proview): MASTER_OPEN_SPEC ----------------
      No view of every business here. "Open in Employee" in the licence portal signs the master in with a biz claim;
      sso-login answers { open: <pe_orgs id> } (cloud.js keeps it per tab in sessionStorage pv_master_open), and the
-     master opens exactly that business as its Owner. Without one: "Open a customer from the licence portal". */
+     master opens exactly that business as its Owner. Without one: "Open a location from the licence portal". */
   const LIC_PORTAL = 'https://license.proviewcrm.co.uk';
   async function open() {
     O.masterMissing = false;
@@ -75,11 +75,11 @@
   window.PE_MASTER = { open };
   TITLES.masterhome = 'Proview Employee';
   VIEWS.masterhome = function () {
-    const t = O.masterMissing ? 'That business couldn’t be found here. It may have been deleted. Open the customer again from the licence portal.'
-      : 'As Proview you open a customer’s Employee from their page in the licence portal (Open in Employee). It opens here, inside that business.';
-    return `<div class="card pad pv-master-home"><h2 style="margin:0 0 8px;font-size:20px">Open a customer from the licence portal</h2><p class="mut" style="margin:0 0 14px">${t}</p><a class="btn pri" href="${LIC_PORTAL}">Go to license.proviewcrm.co.uk</a></div>`;
+    const t = O.masterMissing ? 'That business couldn’t be found here. It may have been deleted, or linked into another location. Open the location again from the licence portal.'
+      : 'As Proview you open a location’s Employee from its page in the licence portal (Open in Employee). It opens here, inside that business.';
+    return `<div class="card pad pv-master-home"><h2 style="margin:0 0 8px;font-size:20px">Open a location from the licence portal</h2><p class="mut" style="margin:0 0 14px">${t}</p><a class="btn pri" href="${LIC_PORTAL}">Go to license.proviewcrm.co.uk</a></div>`;
   };
-  // "Viewing <Business> as Proview" under the header while the master is inside a customer's business
+  // "Viewing <Business> as Proview" under the header while the master is inside a location's business
   function masterBar() {
     let b = document.getElementById('pvMasterBar');
     const on = !!(O.ready && O.master && O.asMaster && O.org && !O.home);
@@ -320,7 +320,7 @@
     const mine = (O.orgs || []).find((x) => x.org_id === id && !x.locked);
     if (mine) O.enterOrg(mine);
   };
-  // the master with no customer opened: only the "Open a customer" page, no business tools
+  // the master with no location opened: only the "Open a location" page, no business tools
   const _renderNow = renderNow;
   renderNow = function () {
     const home = !!(O.ready && O.home);
@@ -383,7 +383,7 @@
   toast = function () { document.getElementById('toast')?.classList.remove('pe-toast-bottom'); return _toastPE.apply(this, arguments); };
   const css5 = document.createElement('style');
   css5.textContent = `@media (max-width:700px){#toast.pe-toast-bottom{top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}}
-/* the Proview master inside one customer's business, opened from the licence portal (MASTER_OPEN_SPEC) */
+/* the Proview master inside one location's business, opened from the licence portal (MASTER_OPEN_SPEC) */
 .pv-master-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 20px;background:#fff7e0;border-bottom:1px solid #f1dfa6;color:#5c4400;font-size:13.5px}
 .pv-master-bar b{font-weight:700}.pv-master-bar .pv-master-back{margin-left:auto;color:#5c4400;font-weight:600;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 body.dark .pv-master-bar{background:#3a2f12;border-color:#5c4a1a;color:#f3dc9b}body.dark .pv-master-bar .pv-master-back{color:#f3dc9b}
